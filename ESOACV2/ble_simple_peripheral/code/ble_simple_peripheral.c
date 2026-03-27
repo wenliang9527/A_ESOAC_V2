@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include "os_timer.h"
 #include "gap_api.h"
-#include "gatt_api.h"
 #include "ble_simple_peripheral.h"
 
 #include "sys_utils.h"
@@ -146,9 +145,10 @@ static void sp_start_adv(void);
  * @{
  */
 
-void param_timer_func(void *arg)
+static void ble_conn_param_timer_cb(void *arg)
 {
-    co_printf("param_timer_func\r\n");
+    (void)arg;
+    co_printf("ble_conn_param_timer_cb\r\n");
     gap_conn_param_update(0, 12, 12, 55, 600);
 }
 /*********************************************************************
@@ -290,7 +290,7 @@ void simple_peripheral_init(void)
     ble_init_device_name();
 
     gap_set_dev_name((uint8_t *)g_ble_dev_name, strlen(g_ble_dev_name) + 1);
-    os_timer_init(&update_param_timer, param_timer_func, NULL);
+    os_timer_init(&update_param_timer, ble_conn_param_timer_cb, NULL);
     gap_set_dev_appearance(GAP_APPEARE_GENERIC_RC);
 
     gap_security_param_t param =

@@ -28,5 +28,5 @@
 .\objects\ota.o: ..\components\modules\common\include\co_printf.h
 .\objects\ota.o: ..\components\ble\profiles\ble_ota\ota.h
 .\objects\ota.o: ..\components\ble\profiles\ble_ota\ota_service.h
-.\objects\ota.o: ..\usercode\flash_usage_config.h
+.\objects\ota.o: ..\code\flash_usage_config.h
 .\objects\ota.o: ..\components\modules\os\include\os_timer.h

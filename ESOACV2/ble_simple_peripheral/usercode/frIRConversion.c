@@ -1,10 +1,4 @@
-/*********************************************************************
- * @file    frIRConversion.c
- * @brief   红外编解码模块
- * @details 实现红外信号的发送编码与接收学习功能，系统主频 48MHz
- *          - 发送：将数据编码为 PWM 载波时序，通过 Timer0 + PWM5(PC5) 输出
- *          - 学习：通过 EXTI(PC3) 捕获外部红外接收信号，解析并存储时序数据
- *********************************************************************/
+/* 红外：Timer0+PWM5(PC5) 发送；EXTI(PC3) 学习捕获；主频 48MHz */
 
 #include "frIRConversion.h"
 
@@ -23,8 +17,15 @@
 #include "os_task.h"
 #include "os_msg_q.h"
 #include "co_printf.h"
+#include "ll.h"
 //#include "user_task.h"
 
+/*
+ * 硬件资源约定（勿与其它模块复用）：
+ * - Timer0：红外发送（微秒节拍）与学习（1ms 节拍）分时独占
+ * - PWM5 / PC5：红外载波输出
+ * - EXTI_3 / PC3：红外接收解调输入
+ */
 
 airconditioner   ESairkey;
 
@@ -41,8 +42,22 @@ static uint8_t ir_data_check(void);
 static uint8_t sys_clk;
 static uint8_t sys_clk_cfg;
 
+/* 发送结束时的硬件与状态回收（可从 Timer0 ISR 或 IR 任务调用） */
+__attribute__((section("ram_code"))) static void IR_send_complete_hw_cleanup(void)
+{
+    pmu_set_pin_to_PMU(GPIO_PORT_C, (1 << GPIO_BIT_5));
+    pmu_set_port_mux(GPIO_PORT_C, GPIO_BIT_5, PMU_PORT_MUX_GPIO);
+    pmu_set_pin_dir(GPIO_PORT_C, BIT(5), GPIO_DIR_IN);
+    IR_PWM_TIM.IR_Busy = false;
+    timer_stop(TIMER0);
+    NVIC_DisableIRQ(TIMER0_IRQn);
+#if IR_SLEEP_EN
+    system_sleep_enable();
+#endif
+}
 
-/* PWM 寄存器结构体定义 */
+
+/* 直访 PWM 寄存器 */
 struct pwm_ctrl_t
 {
     uint32_t en:1;
@@ -68,7 +83,7 @@ struct pwm_regs_t
 static struct pwm_regs_t *pwm_ctrl = (struct pwm_regs_t *)PWM_BASE;
 
 
-/* Timer 寄存器结构体定义 */
+/* 直访 Timer0 寄存器 */
 struct timer_lvr_t
 {
     uint32_t load: 16;
@@ -108,14 +123,7 @@ struct timer
 volatile struct timer *timerp_ir = (volatile struct timer *)TIMER0;
 
 
-/*********************************************************************
- * @fn      IR_decode
- * @brief   将原始数据编码为红外 PWM 时序
- * @param   ir_data         - 待编码的原始数据
- *          data_size       - 数据字节数
- *          IR_Send_struct  - 输出的 PWM 时序结构体
- * @return  None
- *********************************************************************/
+/* 原始字节 -> 引导码/数据位/结束段的微秒时序表 */
 void IR_decode(uint8_t *ir_data,uint8_t data_size,TYPEDEFIRPWMTIM *IR_Send_struct)
 {
     uint8_t i=0,j=0;
@@ -149,12 +157,7 @@ void IR_decode(uint8_t *ir_data,uint8_t data_size,TYPEDEFIRPWMTIM *IR_Send_struc
     IR_Send_struct->IR_Pwm_State_Date[IR_Send_struct->IR_pwm_Num++] = IRSTOPHIGHT;
 }
 
-/*********************************************************************
- * @fn      IR_start_send
- * @brief   启动红外信号发送
- * @param   IR_Send_struct  - 包含 PWM 时序和载波频率的发送参数
- * @return  None
- *********************************************************************/
+/* 启动发送：Timer0 节拍 + PC5 载波 */
 
 void IR_start_send(TYPEDEFIRPWMTIM *IR_Send_struct)
 {
@@ -203,25 +206,13 @@ void IR_start_send(TYPEDEFIRPWMTIM *IR_Send_struct)
 
 }
 
-/*********************************************************************
- * @fn      IR_stop_send
- * @brief   停止红外循环发送
- * @param   None
- * @return  None
- *********************************************************************/
+/* 关闭循环发送 */
 void IR_stop_send(void)
 {
     IR_PWM_TIM.loop =false;
 }
 
-/*********************************************************************
- * @fn      timer_init_count_us_reload
- * @brief   动态重载定时器周期（微秒级）
- * @param   timer_addr - 定时器基地址
- *          count_us   - 目标周期（微秒），最小 100us
- * @return  true: 设置成功  false: 周期过小
- * @note    位于 RAM 段，可在中断中调用
- *********************************************************************/
+/* 中断内重载定时周期（µs），小于 100µs 失败 */
 __attribute__((section("ram_code")))uint8_t timer_init_count_us_reload(uint32_t timer_addr, uint32_t count_us)
 {
     uint16_t count;
@@ -271,14 +262,7 @@ __attribute__((section("ram_code")))uint8_t timer_init_count_us_reload(uint32_t 
     return true;
 }
 
-/*********************************************************************
- * @fn      calculate_carrier_frequency
- * @brief   从原始脉冲数据中估算载波频率
- * @param   data_buf  - 原始脉冲时间数据
- *          buf_size  - 数据量（建议 100）
- * @return  估算的载波频率 (36K/38K/56K)
- * @note    位于 RAM 段，可在中断中调用
- *********************************************************************/
+/* 由短脉冲统计估算载波，归一到 36/38/56kHz */
 __attribute__((section("ram_code"))) static uint32_t calculate_carrier_frequency(uint32_t *data_buf, uint16_t buf_size)
 {
     #define CARRIER_PULSE_MIN   700
@@ -313,12 +297,7 @@ __attribute__((section("ram_code"))) static uint32_t calculate_carrier_frequency
         return IR_CF_36K;
 }
 
-/*********************************************************************
- * @fn      parse_pulse_data
- * @brief   将原始中断捕获数据解析为载波时长 + 间隔时长的序列
- * @param   learn - 学习上下文结构体
- * @note    位于 RAM 段，可在中断中调用
- *********************************************************************/
+/* EXTI 缓冲 -> 载波累计时长与间隙，写入 learn->ir_learn_Date */
 __attribute__((section("ram_code"))) static void parse_pulse_data(TYPEDEFIRLEARN *learn)
 {
     #define CARRIER_PULSE_MIN   700
@@ -373,13 +352,7 @@ __attribute__((section("ram_code"))) static void parse_pulse_data(TYPEDEFIRLEARN
         learn->ir_learn_Date[learn->ir_learn_data_cnt - 1] = STOP_BIT_TIME;
 }
 
-/*********************************************************************
- * @fn      save_learned_data
- * @brief   保存学习结果到全局存储结构
- * @param   learn - 学习上下文结构体
- * @return  true
- * @note    位于 RAM 段，可在中断中调用
- *********************************************************************/
+/* 学习成功：写入当前键 airbutton[]，关 EXTI/Timer0 */
 __attribute__((section("ram_code"))) static bool save_learned_data(TYPEDEFIRLEARN *learn)
 {
     timer_stop(TIMER0);
@@ -389,31 +362,27 @@ __attribute__((section("ram_code"))) static bool save_learned_data(TYPEDEFIRLEAR
     ir_learn_data.ir_learn_data_cnt = learn->ir_learn_data_cnt;
     memcpy(ir_learn_data.ir_learn_Date, learn->ir_learn_Date, 
            learn->ir_learn_data_cnt * sizeof(uint32_t));
-    /* 保存到当前学习按键对应的存储槽 */
-    memcpy(&ESairkey.airbutton[ESairkey.AIPstudyKey], &ir_learn_data, 
+    /* 保存到当前学习按键对应的存储槽（与协议读发路径互斥） */
+    GLOBAL_INT_DISABLE();
+    memcpy(&ESairkey.airbutton[ESairkey.AIPstudyKey], &ir_learn_data,
            sizeof(TYPEDEFIRLEARNDATA));
     if (ESairkey.AIPstudyKey < AIRkeyNumber) {
         ESairkey.keyExistence[ESairkey.AIPstudyKey] = 1;
     }
+    GLOBAL_INT_RESTORE();
     IR_LOG("ir learn success! data_cnt = %d\r\n", ir_learn_data.ir_learn_data_cnt);
     return true;
 }
 
-/*********************************************************************
- * @fn      timer0_isr_ram
- * @brief   Timer0 中断服务函数（位于 RAM 段）
- * @details 双模式中断处理：
- *          - 发送模式：按时序序列切换 PWM 载波的输出/关断
- *          - 学习模式：管理学习状态机（等待静默 → 采集数据 → 超时处理）
- *********************************************************************/
+/* Timer0 ISR：发送推进 / 学习 1ms 节拍与超时 */
 __attribute__((section("ram_code"))) void timer0_isr_ram(void)
 {
     timer_clear_interrupt(TIMER0);
 
-    // ==================== 发送模式 ====================
+    /* 发送 */
     if(ir_mode == IR_SEND)
     {
-        // 情况1：还有剩余时序数据未发送
+        /* 下一段时序 */
         if(IR_PWM_TIM.IR_pwm_SendNum < IR_PWM_TIM.IR_pwm_Num)
         {
             /* 加载下一个时序间隔 */
@@ -440,7 +409,6 @@ __attribute__((section("ram_code"))) void timer0_isr_ram(void)
             
             NVIC_EnableIRQ(BLE_IRQn);
         }
-        // 情况2：需要循环发送
         else if(IR_PWM_TIM.loop)
         {
             /* 重置发送索引和状态 */
@@ -454,20 +422,21 @@ __attribute__((section("ram_code"))) void timer0_isr_ram(void)
             pwm_ctrl->channel[PWM_CHANNEL_5].high_cnt = IR_PWM_TIM.high_count_half;
             NVIC_EnableIRQ(BLE_IRQn);
         }
-        // 情况3：发送完成
         else
         {
-            /* 发送完成事件通知 IR 任务 */
-            os_event_t ir_event;
-            ir_event.event_id = 0;
-            ir_event.src_task_id = TASK_ID_NONE;
-            ir_event.param = NULL;
-            ir_event.param_len = 0;
-            
-            os_msg_post(user_ir_task_id, &ir_event);
+            if (user_ir_task_id != TASK_ID_NONE) {
+                os_event_t ir_event;
+                ir_event.event_id = 0;
+                ir_event.src_task_id = TASK_ID_NONE;
+                ir_event.param = NULL;
+                ir_event.param_len = 0;
+                os_msg_post(user_ir_task_id, &ir_event);
+            } else {
+                /* 无 IR 任务时直接回收，避免 IR_Busy 卡死 */
+                IR_send_complete_hw_cleanup();
+            }
         }
     }
-    // ==================== 学习模式 ====================
     else if (ir_mode == IR_LEARN)
     {
         if (ir_learn == NULL)
@@ -533,15 +502,7 @@ __attribute__((section("ram_code"))) void timer0_isr_ram(void)
 #define IR_EXTI_LOG     FR_LOG(IR_EXTI_DBG)
 
 
-/*********************************************************************
- * @fn      exti_isr_ram
- * @brief   外部中断服务函数 - 红外学习信号捕获（位于 RAM 段）
- * @details 通过 PC3 (EXTI_3) 引脚捕获红外接收器的输出信号
- *          - 在 IR_WAIT_STOP 阶段：检测信号是否已停止
- *          - 在 IR_LEARN_GET_DATA 阶段：记录脉冲间隔时间
- * @note    位于 RAM 段，确保中断响应速度
- * @see     timer0_isr_ram(), IR_start_learn()
- *********************************************************************/
+/* EXTI_3(PC3)：等待静默清零计数 / 采集中记脉冲间隔 */
 volatile struct ext_int_t *const ext_int_reg_ir = (struct ext_int_t *)EXTI_BASE;
 
 __attribute__((section("ram_code"))) void exti_isr_ram(void)
@@ -601,75 +562,43 @@ __attribute__((section("ram_code"))) void exti_isr_ram(void)
 }
 
 
-/*********************************************************************
- * @fn      IR_start_learn
- * @brief   启动红外学习功能
- * @details 初始化流程：
- *          1. 分配学习上下文内存
- *          2. 配置学习模式状态
- *          3. 配置 PC3 为外部中断输入（红外接收器）
- *          4. 启动 Timer0 作为 1ms 周期计时器
- *          5. 使能 EXTI 和 Timer0 中断
- * @return  true: 启动成功  false: 启动失败
- *********************************************************************/
+/* 开始学习：malloc 上下文、PC3 下降沿、Timer0 1ms */
 uint8_t IR_start_learn(void)
 {
-    // ==================== 状态检查 ====================
     if(((ir_learn_data.IR_learn_state & BIT(1)) == BIT(1)))
     {
         co_printf("ir_learn busy!\r\n");
         return false;
     }
-    // ==================== 分配内存 ====================
     ir_learn = os_zalloc(sizeof(TYPEDEFIRLEARN));
     if(ir_learn == NULL)
     {
         co_printf("ir_learn malloc error!\r\n");
         return false;
     }
-    // ==================== 模式配置 ====================
     ir_mode = IR_LEARN;
     memset(&ir_learn_data, 0, sizeof(ir_learn_data));
     ir_learn_data.IR_learn_state |= BIT(1);
-    // ==================== 禁用休眠 ====================
     #if IR_SLEEP_EN
     system_sleep_disable();
     #endif
-    // ==================== GPIO 配置 ====================
-    /* 将 PC3 从 PMU 切换到 CPU 域 */
     pmu_set_pin_to_CPU(GPIO_PORT_C, BIT(3));
-    /* 配置 PC3 为通用 C3 功能（复用为 EXTI_3） */
     system_set_port_mux(GPIO_PORT_C, GPIO_BIT_3, PORTC3_FUNC_C3);
-    /* PC3 设为输入 */
     gpio_set_dir(GPIO_PORT_C, GPIO_BIT_3, GPIO_DIR_IN);
-    /* PC3 使能上拉 */
     system_set_port_pull(GPIO_PC3, true);
-    // ==================== 外部中断配置 ====================
-    /* 将 EXTI_3 映射到 PC3 */
     ext_int_set_port_mux(EXTI_3, EXTI_3_PC3);
-    /* 下降沿触发（红外接收器输出默认高电平，有信号时拉低） */
-    ext_int_set_type(EXTI_3, EXT_INT_TYPE_NEG);
-    /* 使能 EXTI_3 */
+    ext_int_set_type(EXTI_3, EXT_INT_TYPE_NEG);  /* 接收器空闲高，有码低 */
     ext_int_enable(EXTI_3);
-    // ==================== 中断优先级 ====================
     NVIC_SetPriority(TIMER0_IRQn, 0);
     NVIC_SetPriority(EXTI_IRQn, 0);
-    // ==================== 定时器配置 ====================
-    /* Timer0 周期 1000us (1ms)，用于学习超时判断 */
-    timer_init(TIMER0, 1000, TIMER_PERIODIC);
+    timer_init(TIMER0, 1000, TIMER_PERIODIC);  /* 1ms */
     timer_run(TIMER0);
-    // ==================== 使能中断 ====================
     NVIC_EnableIRQ(EXTI_IRQn);
     NVIC_EnableIRQ(TIMER0_IRQn);
     return true;
 }
 
-/*********************************************************************
- * @fn      IR_stop_learn
- * @brief   停止红外学习
- * @param   None
- * @return  None
- *********************************************************************/
+/* 结束学习：关中断、释放缓冲、可选恢复休眠 */
 void IR_stop_learn(void)
 {
 
@@ -705,38 +634,21 @@ void IR_stop_learn(void)
     co_printf("ir_learn = %x\r\n",ir_learn);
 }
 
-/*********************************************************************
- * @fn      IR_task_func
- * @brief   IR 任务处理函数
- * @details 处理红外发送完成事件：释放 PWM 引脚，恢复空闲状态
- *********************************************************************/
+/* IR 任务：发送完成时回收 PC5/Timer0 */
 static int IR_task_func(os_event_t *param)
 {
     switch(param->event_id)
     {
         case 0:
-            /* 发送完成：将 PC5 归还 PMU 并设为输入 */
-            pmu_set_pin_to_PMU(GPIO_PORT_C,(1<<GPIO_BIT_5));
-            pmu_set_port_mux(GPIO_PORT_C,GPIO_BIT_5,PMU_PORT_MUX_GPIO);
-            pmu_set_pin_dir(GPIO_PORT_C,BIT(5),GPIO_DIR_IN);
             co_printf("IR Send End \r\n");
-            IR_PWM_TIM.IR_Busy = false;
-            timer_stop(TIMER0);
-            NVIC_DisableIRQ(TIMER0_IRQn);
-#if IR_SLEEP_EN
-            system_sleep_enable();
-#endif
+            IR_send_complete_hw_cleanup();
             break;
     }
 
     return EVT_CONSUMED;
 }
 
-/*********************************************************************
- * @fn      IR_init
- * @brief   初始化红外模块
- * @details 创建 IR 任务，配置系统时钟参数
- *********************************************************************/
+/* 创建 IR 任务，缓存主频分档供 timer 计算用 */
 void IR_init(void)
 {
     if(user_ir_task_id == TASK_ID_NONE)
@@ -753,7 +665,7 @@ void IR_init(void)
 }
 
 
-/***********************************************Test demo************************************************************/
+/* --- 调试用 demo --- */
 #include "os_timer.h"
 uint8_t ir_testdata[10]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07};
 os_timer_t os_timer_IR_test;
@@ -763,10 +675,17 @@ void os_timer_IR_test_cb(void *arg)
     IR_stop_learn();
 }
 
-/*********************************************************************
- * @fn      IR_test_demo1
- * @brief   测试函数：启动红外学习，10秒后自动停止
- *********************************************************************/
+/* demo：编码 ir_testdata 并发送 */
+void IR_test_demo0(void)
+{
+    TYPEDEFIRPWMTIM IR_send_data = {0};
+
+    IR_send_data.ir_carrier_fre = IR_CARRIER_FRE;
+    IR_decode(ir_testdata, (uint8_t)sizeof(ir_testdata), &IR_send_data);
+    IR_start_send(&IR_send_data);
+}
+
+/* demo：开始学习，10s 定时停止 */
 void IR_test_demo1(void)
 {
 #if 1
@@ -784,11 +703,7 @@ void IR_test_demo1(void)
 #endif
 }
 
-/*********************************************************************
- * @fn      IR_test_demo2
- * @brief   测试函数：重放学习到的红外数据
- * @note    需先调用 IR_test_demo1() 完成学习
- *********************************************************************/
+/* demo：回放最近一次学习数据 */
 void IR_test_demo2(void)
 {
 #if 1
@@ -810,14 +725,7 @@ void IR_test_demo2(void)
 }
 
 
-/*********************************************************************
- * @fn      ir_data_check
- * @brief   校验学习到的红外数据有效性
- * @details 通过分析时序间隔判断数据是否有效：
- *          - 检测停止位（12ms~100ms）的数量和分布
- *          - 判断数据长度是否合理
- * @return  true: 数据有效  false: 数据无效
- *********************************************************************/
+/* 学习结果合法性：停止位/重复帧等启发式 */
 static uint8_t ir_data_check(void)
 {
     uint16_t i = 0;
@@ -893,13 +801,7 @@ static uint8_t ir_data_check(void)
     return IR_learn_state;
 }
 
-/*********************************************************************
- * @fn      ESOAAIR_IRskeystudy
- * @brief   启动指定按键的红外学习
- * @param   keynumber - 按键编号 (studyIRKeypress 枚举)
- * @note    学习超时时间为 10 秒
- * @see     IR_start_learn(), IR_stop_learn()
- *********************************************************************/
+/* 协议入口：对 keynumber 开始学习，10s 自动停 */
 void ESOAAIR_IRskeystudy(uint8_t keynumber)
 {
     ESairkey.EIRlearnStatus = true;
@@ -918,38 +820,31 @@ void ESOAAIR_IRskeystudy(uint8_t keynumber)
     }
 }
 
-/*********************************************************************
- * @fn      ESOAAIR_IRsend
- * @brief   发送指定按键的学习红外数据
- * @param   keynumber - 按键编号（对应 ESairkey.airbutton 数组索引）
- * @note    按键必须已完成学习才能发送
- * @see     ESOAAIR_IRskeystudy(), IR_start_send()
- *********************************************************************/
+/* 协议入口：发送已学习槽 keynumber 的时序 */
 void ESOAAIR_IRsend(uint8_t keynumber)
 {
     TYPEDEFIRPWMTIM IR_send_data = {0};
-    /* 检查按键是否已学习 (BIT(0)=1 表示已学习) */
-    if(((ESairkey.airbutton[keynumber].IR_learn_state & BIT(0)) == BIT(0)))
-    {
-        co_printf("send IR learn data,ir_learn_data.ir_learn_data_cnt=%d\r\n",
-                  ESairkey.airbutton[keynumber].ir_learn_data_cnt);
-        /* 从存储中恢复载波频率 */
-        IR_send_data.ir_carrier_fre = ESairkey.airbutton[keynumber].ir_carrier_fre;
-        /* 恢复 PWM 时序数据 */
-        IR_send_data.IR_pwm_Num = ESairkey.airbutton[keynumber].ir_learn_data_cnt;
-        memcpy(IR_send_data.IR_Pwm_State_Date,
-               ESairkey.airbutton[keynumber].ir_learn_Date,
-               IR_send_data.IR_pwm_Num * sizeof(uint32_t));
-        
-        IR_start_send(&IR_send_data);
+    TYPEDEFIRLEARNDATA slot;
+
+    if (keynumber >= AIRkeyNumber) {
+        co_printf("IR key out of range\r\n");
+        return;
     }
-    else
-    {
+
+    GLOBAL_INT_DISABLE();
+    memcpy(&slot, &ESairkey.airbutton[keynumber], sizeof(slot));
+    GLOBAL_INT_RESTORE();
+
+    if ((slot.IR_learn_state & BIT(0)) == BIT(0)) {
+        co_printf("send IR learn data,ir_learn_data.ir_learn_data_cnt=%d\r\n",
+                  slot.ir_learn_data_cnt);
+        IR_send_data.ir_carrier_fre = slot.ir_carrier_fre;
+        IR_send_data.IR_pwm_Num = slot.ir_learn_data_cnt;
+        memcpy(IR_send_data.IR_Pwm_State_Date, slot.ir_learn_Date,
+               IR_send_data.IR_pwm_Num * sizeof(uint32_t));
+
+        IR_start_send(&IR_send_data);
+    } else {
         co_printf("Please perform IR learn first\r\n");
-    } 
-}
-
-void process_ir_data(uint8_t keynumber)
-{
-
+    }
 }

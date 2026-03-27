@@ -9,9 +9,7 @@
 #ifndef _FLASH_USAGE_CONFIG_H
 #define _FLASH_USAGE_CONFIG_H
 
-/*
- * MACROS (∫Í∂®“Â)
- */
+/* Flash ????????SDK ????????? */
 
 /*
  * the following MACROS is used to define flash space used in SDK.

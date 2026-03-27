@@ -13,7 +13,6 @@ SRC_FILES += \
               $(PROJ_DIR)/ble_simple_peripheral.c \
               $(PROJ_DIR)/user_task.c \
               $(SDK_ROOT)/components/modules/button/button.c \
-              $(SDK_ROOT)/components/ble/profiles/ble_simple_profile/simple_gatt_service.c \
               $(SDK_ROOT)/components/driver/driver_iic.c \
               $(SDK_ROOT)/components/driver/driver_pmu.c \
               $(SDK_ROOT)/components/driver/driver_keyscan.c \
@@ -41,7 +40,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/modules/button \
   $(SDK_ROOT)/components/ble/include/gap \
   $(SDK_ROOT)/components/ble/include/gatt \
-  $(SDK_ROOT)/components/ble/profiles/ble_simple_profile \
   $(PROJ_DIR)
 
 # Libraries common to all targets

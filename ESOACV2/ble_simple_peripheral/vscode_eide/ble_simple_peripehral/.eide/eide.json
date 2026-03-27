@@ -4,7 +4,6 @@
   "dependenceList": [],
   "srcDirs": [
     "../../code",
-    "../../../../../components/ble/profiles/ble_simple_profile",
     "../../../../../components/modules/button",
     "../../../../../components/modules/platform",
     "../../../../../components/modules/patch",
@@ -81,7 +80,6 @@
           "../../../../../components/ble/include",
           "../../../../../components/ble/include/gap",
           "../../../../../components/ble/include/gatt",
-          "../../../../../components/ble/profiles/ble_simple_profile",
           "../../../../../components/driver/include",
           "../../../../../components/modules/button",
           "../../../../../components/modules/common/include",

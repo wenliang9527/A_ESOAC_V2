@@ -5,8 +5,6 @@
 .\objects\ble_simple_peripheral.o: D:\MDK5\ARM\ARMCC\Bin\..\include\stdio.h
 .\objects\ble_simple_peripheral.o: ..\components\modules\os\include\os_timer.h
 .\objects\ble_simple_peripheral.o: ..\components\ble\include\gap\gap_api.h
-.\objects\ble_simple_peripheral.o: ..\components\ble\include\gatt\gatt_api.h
-.\objects\ble_simple_peripheral.o: ..\components\modules\os\include\os_msg_q.h
 .\objects\ble_simple_peripheral.o: ..\code\ble_simple_peripheral.h
 .\objects\ble_simple_peripheral.o: ..\components\modules\sys\include\sys_utils.h
 .\objects\ble_simple_peripheral.o: ..\components\modules\common\include\co_printf.h
@@ -27,3 +25,4 @@
 .\objects\ble_simple_peripheral.o: ..\components\modules\platform\include\ll.h
 .\objects\ble_simple_peripheral.o: ..\components\driver\include\driver_ssp.h
 .\objects\ble_simple_peripheral.o: ..\components\modules\os\include\os_task.h
+.\objects\ble_simple_peripheral.o: ..\components\modules\os\include\os_msg_q.h

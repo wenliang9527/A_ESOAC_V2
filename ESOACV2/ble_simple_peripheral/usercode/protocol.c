@@ -1,8 +1,4 @@
-/**
- * @file protocol.c
- * @brief ESOAC空调节能终端统一协议解析模块实现
- * @description 处理BLE/MQTT/UART三通道的协议帧，统一命令码体系
- */
+/* ESOAC 协议：BLE/MQTT/UART 统一解析与应答 */
 
 #include "protocol.h"
 #include <string.h>
@@ -16,19 +12,15 @@
 #include "app_task.h"
 #include "gap_api.h"
 #include "sys_utils.h"
+#include "ll.h"
 
-// 来源定义
-#define SOURCE_BLE  0
-#define SOURCE_MQTT 1
-#define SOURCE_UART 2
-
-// 全局变量
+/* 心跳计数 */
 static uint32_t heartbeat_counter = 0;
 
-// 文档协议字段编码转换（协议字段按文档定义：0=关/自动等）
+/* 文档协议值 <-> 内部枚举 */
 static uint8_t internal_power_to_doc(AIRSwitchkey st)
 {
-    return (st == airSW_ON) ? 1 : 0; // 文档：1=开
+    return (st == airSW_ON) ? 1 : 0;
 }
 
 static AIRSwitchkey doc_power_to_internal(uint8_t doc_power)
@@ -38,7 +30,7 @@ static AIRSwitchkey doc_power_to_internal(uint8_t doc_power)
 
 static AIRmodekey doc_mode_to_internal(uint8_t doc_mode)
 {
-    // 文档：0=自动,1=制冷,2=制热,3=除湿,4=送风,5=睡眠
+    /* 文档模式 0..5 -> 内部枚举 */
     static const AIRmodekey map[6] = {
         airmode_Auto,
         airmode_cold,
@@ -55,7 +47,7 @@ static AIRmodekey doc_mode_to_internal(uint8_t doc_mode)
 
 static uint8_t internal_mode_to_doc(AIRmodekey mode)
 {
-    // internal enum：0=制冷,1=制热,2=除湿,3=送风,4=自动,5=睡眠
+    /* 内部模式序映射到文档 0..5 */
     static const uint8_t map[6] = {1, 2, 3, 4, 0, 5};
     if (mode > airmode_Sleep) {
         return 0;
@@ -63,26 +55,24 @@ static uint8_t internal_mode_to_doc(AIRmodekey mode)
     return map[mode];
 }
 
-// 等待红外发送完成（轮询 IR_PWM_TIM.IR_Busy）
+/* 等红外发完：轮询 IR_Busy，5ms 步进 */
 static bool air_ir_send_key_and_wait(uint8_t keynumber, uint32_t timeout_ms)
 {
-    // 直接发射（内部会检查 busy 状态）
     ESOAAIR_IRsend(keynumber);
 
-    // 轮询等待发送结束
     uint32_t elapsed_us = 0;
-    const uint32_t step_us = 10; // 10us 轮询一次
+    const uint32_t step_us = 5000; /* 5ms = 50 * 100us */
     const uint32_t timeout_us = timeout_ms * 1000;
 
     while (IR_PWM_TIM.IR_Busy && elapsed_us < timeout_us) {
-        co_delay_100us(step_us);
+        co_delay_100us(50);
         elapsed_us += step_us;
     }
 
     return (IR_PWM_TIM.IR_Busy == 0);
 }
 
-// ========== 帧基础操作 ==========
+/* --- 帧 --- */
 
 void protocol_init(void)
 {
@@ -95,8 +85,7 @@ uint8_t protocol_calc_checksum(protocol_frame_t *frame)
     uint16_t i;
     uint8_t data_len = 0;
 
-    // Data Length 字段语义（按文档）：DataMark(1B) + Cmd(2B) + Data(N)
-    // 因此业务数据长度 N = data_length - 3
+    /* 长度含 标记+命令+数据；payload 长 N = data_length - 3 */
     if (frame->data_length >= 3) {
         data_len = frame->data_length - 3;
     }
@@ -129,7 +118,7 @@ bool protocol_build_frame(protocol_frame_t *frame, uint16_t command,
 
     frame->frame_header[0] = FRAME_HEADER_1;
     frame->frame_header[1] = FRAME_HEADER_2;
-    // Data Length 字段语义（按文档）：DataMark(1B) + Cmd(2B) + Data(N)
+    /* data_length = 3 + N */
     frame->data_length = data_len + 3;
     frame->data_mark = data_mark;
     frame->command = command;
@@ -150,7 +139,7 @@ bool protocol_parse_frame(uint8_t *buffer, uint16_t len, protocol_frame_t *frame
         return false;
     }
 
-    // 查找帧头
+    /* 找帧头 5A7A */
     uint16_t i = 0;
     while (i < len - 1) {
         if (buffer[i] == FRAME_HEADER_1 && buffer[i + 1] == FRAME_HEADER_2) {
@@ -163,7 +152,7 @@ bool protocol_parse_frame(uint8_t *buffer, uint16_t len, protocol_frame_t *frame
         return false;
     }
 
-    // 总长度 = 2(header) + 1(length) + data_length + 1(checksum) = data_length + 4
+    /* 整帧字节 = 4 + data_length */
     uint8_t frame_len = buffer[i + 2] + 4;
     if (i + frame_len > len) {
         return false;
@@ -195,7 +184,7 @@ bool protocol_parse_frame(uint8_t *buffer, uint16_t len, protocol_frame_t *frame
     return true;
 }
 
-// ========== 发送公共函数 ==========
+/* --- 发送 --- */
 
 static uint16_t protocol_frame_to_buffer(protocol_frame_t *frame, uint8_t *buffer)
 {
@@ -217,9 +206,9 @@ static uint16_t protocol_frame_to_buffer(protocol_frame_t *frame, uint8_t *buffe
 
 static void protocol_send_buffer(uint8_t *buffer, uint16_t len, uint8_t source)
 {
-    if (source == SOURCE_BLE) {
+    if (source == PROTOCOL_SRC_BLE) {
         ESAIR_gatt_report_notify(0, buffer, len);
-    } else if (source == SOURCE_MQTT) {
+    } else if (source == PROTOCOL_SRC_MQTT) {
         if (R_atcommand.MLinitflag == ML307AMQTT_OK) {
             bool ret = ML307A_MQTTPublish(g_mqtt_config.publish_topic, buffer, len);
             if (!ret) {
@@ -228,11 +217,9 @@ static void protocol_send_buffer(uint8_t *buffer, uint16_t len, uint8_t source)
         } else {
             co_printf("WARN: MQTT not connected, skip publish\r\n");
         }
-    } else if (source == SOURCE_UART) {
-        // UART 调试/桥接通道：直接回传协议帧
+    } else if (source == PROTOCOL_SRC_UART) {
         uart_write(UART1, buffer, len);
     }
-    // SOURCE_UART: 当前实现为直接回传（用于调试/桥接）
 }
 
 static bool protocol_build_and_send(uint16_t command, uint8_t data_mark,
@@ -248,9 +235,9 @@ static bool protocol_build_and_send(uint16_t command, uint8_t data_mark,
     return true;
 }
 
-// ========== 统一命令处理 ==========
+/* --- 命令分发 --- */
 
-// MQTT配置辅助函数前向声明
+/* MQTT TLV 校验/组包（前向声明） */
 static bool validate_string_field(const char *str, uint8_t len, uint8_t min_len, uint8_t max_len);
 static uint8_t build_mqtt_config_tlv(uint8_t *buf, uint8_t buf_size);
 
@@ -263,7 +250,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
     uint16_t cmd = frame->command;
     uint8_t payload_len = 0;
     if (frame->data_length >= 3) {
-        payload_len = frame->data_length - 3; // Data 字节长度
+        payload_len = frame->data_length - 3;
     }
 
     switch (cmd) {
@@ -275,20 +262,19 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
             protocol_send_device_info(source);
             break;
 
-        // ---- 空调控制 ----
+        /* 空调控制 */
         case CMD_SET_POWER:
             if (payload_len >= 1) {
                 if (frame->data[0] > 1) {
                     protocol_send_response(CMD_SET_POWER, STATUS_ERROR_PARAM, source);
                     break;
                 }
-                // 按文档：0=关, 1=开
+                /* 文档：0 关 1 开 */
                 AIRSwitchkey desired = doc_power_to_internal(frame->data[0]);
 
-                // 仅当目标状态与当前状态不一致时才发射红外按键
+                /* 状态变才发码 */
                 if (desired != ESAirdata.AIRStatus) {
-                    // key index 映射假设（需与上位机学习/下发约定一致）
-                    // 0: 电源开/关
+                    /* 键0：电源（与上位机约定） */
                     if (!ESairkey.keyExistence[0]) {
                         protocol_send_response(CMD_SET_POWER, STATUS_ERROR_FAIL, source);
                         break;
@@ -308,12 +294,12 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
 
         case CMD_SET_MODE:
             if (payload_len >= 1 && frame->data[0] <= 5) {
-                // 按文档：0=自动,1=制冷,2=制热,3=除湿,4=送风,5=睡眠
+                /* 文档模式 0..5 */
                 uint8_t target_doc_mode = frame->data[0];
                 AIRmodekey desired = doc_mode_to_internal(target_doc_mode);
 
                 if (desired != ESAirdata.AIRMODE) {
-                    // 1: 模式切换按键（通过循环按键前进到目标模式）
+                    /* 键1：模式，循环步进 */
                     if (!ESairkey.keyExistence[1]) {
                         protocol_send_response(CMD_SET_MODE, STATUS_ERROR_FAIL, source);
                         break;
@@ -345,7 +331,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                 if (temp >= 16 && temp <= 30) {
                     if (temp != ESAirdata.AIRTemperature) {
                         int16_t diff = (int16_t)temp - (int16_t)ESAirdata.AIRTemperature;
-                        // 2: 温度+  3: 温度-
+                        /* 键2/3：温度 +/- */
                         if (diff > 0) {
                             if (!ESairkey.keyExistence[2]) {
                                 protocol_send_response(CMD_SET_TEMP, STATUS_ERROR_FAIL, source);
@@ -385,7 +371,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
             if (payload_len >= 1 && frame->data[0] <= airws_max) {
                 uint8_t target_wind = frame->data[0];
                 if (target_wind != ESAirdata.AIRWindspeed) {
-                    // 4: 风速切换按键（按键前进到目标风速）
+                    /* 键4：风速 */
                     if (!ESairkey.keyExistence[4]) {
                         protocol_send_response(CMD_SET_WIND, STATUS_ERROR_FAIL, source);
                         break;
@@ -410,7 +396,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
             }
             break;
 
-        // ---- 状态查询 ----
+        /* 状态查询 */
         case CMD_GET_STATUS:
             protocol_send_status(source);
             break;
@@ -425,10 +411,10 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
 
         case CMD_GET_ADC_DATA:
             fr_ADC_send();
-            protocol_send_response(CMD_GET_ADC_DATA, STATUS_SUCCESS, source);
+            protocol_send_adc_raw(source);
             break;
 
-        // ---- 红外遥控 ----
+        /* 红外 */
         case CMD_IR_LEARN_START:
             if (payload_len >= 1 && frame->data[0] < AIRkeyNumber) {
                 if (!ESairkey.EIRlearnStatus) {
@@ -459,41 +445,39 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
         case CMD_IR_READ_DATA:
             if (payload_len >= 1 && frame->data[0] < AIRkeyNumber) {
                 uint8_t keynumber = frame->data[0];
-                TYPEDEFIRLEARNDATA *learn = &ESairkey.airbutton[keynumber];
+                TYPEDEFIRLEARNDATA learn_copy;
 
-                // bit0: 1=已学习
-                if ((learn->IR_learn_state & BIT(0)) == 0) {
+                GLOBAL_INT_DISABLE();
+                memcpy(&learn_copy, &ESairkey.airbutton[keynumber], sizeof(learn_copy));
+                GLOBAL_INT_RESTORE();
+
+                if ((learn_copy.IR_learn_state & BIT(0)) == 0) {
                     protocol_send_response(CMD_IR_READ_DATA, STATUS_ERROR_FAIL, source);
                     break;
                 }
 
-                // payload:
-                // [0] learned_state (bit0)
-                // [1..4] ir_carrier_fre (LE)
-                // [5] total_cnt (原始学习数据个数)
-                // [6..] pulses[0..P-1] (每个 4B, LE)，P 受 MAX_DATA_LENGTH 限制
                 uint8_t payload[MAX_DATA_LENGTH];
                 memset(payload, 0, sizeof(payload));
 
-                payload[0] = learn->IR_learn_state;
+                payload[0] = learn_copy.IR_learn_state;
 
-                uint32_t carrier = learn->ir_carrier_fre;
+                uint32_t carrier = learn_copy.ir_carrier_fre;
                 payload[1] = (uint8_t)(carrier & 0xFF);
                 payload[2] = (uint8_t)((carrier >> 8) & 0xFF);
                 payload[3] = (uint8_t)((carrier >> 16) & 0xFF);
                 payload[4] = (uint8_t)((carrier >> 24) & 0xFF);
 
-                payload[5] = learn->ir_learn_data_cnt;
+                payload[5] = learn_copy.ir_learn_data_cnt;
 
                 uint8_t max_pulses = (MAX_DATA_LENGTH - 6) / 4;
-                uint8_t pulses = learn->ir_learn_data_cnt;
+                uint8_t pulses = learn_copy.ir_learn_data_cnt;
                 if (pulses > max_pulses) {
                     pulses = max_pulses;
                 }
 
                 uint16_t pos = 6;
                 for (uint8_t i = 0; i < pulses; i++) {
-                    uint32_t v = learn->ir_learn_Date[i];
+                    uint32_t v = learn_copy.ir_learn_Date[i];
                     payload[pos++] = (uint8_t)(v & 0xFF);
                     payload[pos++] = (uint8_t)((v >> 8) & 0xFF);
                     payload[pos++] = (uint8_t)((v >> 16) & 0xFF);
@@ -511,7 +495,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
             protocol_send_response(CMD_IR_SAVE_KEYS, STATUS_SUCCESS, source);
             break;
 
-        // ---- 设备配置 ----
+        /* 设备配置 */
         case CMD_SET_BLE_NAME:
             {
                 if (payload_len < 1) {
@@ -526,7 +510,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                 }
                 char *name = (char *)&frame->data[1];
 
-                // ble_update_device_name 内部完成: 校验 + Flash保存 + 更新BLE广播
+                /* ble_update_device_name：校验+Flash+广播 */
                 int ret = ble_update_device_name(name, name_len);
                 if (ret == 0) {
                     protocol_send_response(CMD_SET_BLE_NAME, STATUS_SUCCESS, source);
@@ -548,25 +532,22 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
 
         case CMD_SET_MQTT_CONFIG:
             {
-                // TLV格式: [type(1)][len(1)][value(N)]...
-                // type: 0=server_addr, 1=server_port, 2=client_id, 3=username,
-                //       4=password, 5=subscribe_topic, 6=publish_topic
-                // 至少需要3字节（一个完整TLV: type+len+value至少1字节）
+                /* TLV：type,len,value；0..6 服务器/端口/ID/用户/密码/订阅/发布 */
                 if (payload_len < 2) {
                     protocol_send_response(CMD_SET_MQTT_CONFIG, STATUS_ERROR_PARAM, source);
                     break;
                 }
 
-                // avail = 业务数据长度（不含DataMark/Command字段）
+                /* avail：纯 payload 长 */
                 uint8_t avail = payload_len;
                 uint8_t *cfg_data = &frame->data[0];
                 uint16_t pos = 0;
                 bool any_field_valid = false;
                 bool parse_error = false;
-                // TLV 部分更新语义：只有命中的字段才更新；未提交字段保持原值不变
+                /* 仅更新本次出现的字段 */
                 bool updated[7] = {0};
 
-                // 临时存储新配置
+                /* 临时缓冲 */
                 char new_addr[MQTT_ADDR_MAX_LEN]     = {0};
                 char new_port[MQTT_PORT_MAX_LEN]     = {0};
                 char new_cid[MQTT_CLIENT_ID_MAX_LEN] = {0};
@@ -587,7 +568,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                     char *value = (char *)&cfg_data[pos + 2];
 
                     switch (type) {
-                        case 0: // server_addr
+                        case 0:
                             if (validate_string_field(value, len, 1, MQTT_ADDR_MAX_LEN - 1)) {
                                 memcpy(new_addr, value, len);
                                 new_addr[len] = '\0';
@@ -595,7 +576,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                                 updated[0] = true;
                             }
                             break;
-                        case 1: // server_port
+                        case 1:
                             if (validate_string_field(value, len, 1, MQTT_PORT_MAX_LEN - 1)) {
                                 memcpy(new_port, value, len);
                                 new_port[len] = '\0';
@@ -603,7 +584,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                                 updated[1] = true;
                             }
                             break;
-                        case 2: // client_id
+                        case 2:
                             if (validate_string_field(value, len, 1, MQTT_CLIENT_ID_MAX_LEN - 1)) {
                                 memcpy(new_cid, value, len);
                                 new_cid[len] = '\0';
@@ -611,7 +592,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                                 updated[2] = true;
                             }
                             break;
-                        case 3: // username
+                        case 3:
                             if (len == 0 || validate_string_field(value, len, 1, MQTT_USER_MAX_LEN - 1)) {
                                 if (len > 0) memcpy(new_user, value, len);
                                 new_user[len] = '\0';
@@ -619,8 +600,8 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                                 updated[3] = true; // 支持提交 len=0 清空
                             }
                             break;
-                        case 4: // password
-                            // 密码允许任意字节（除控制字符），更宽松校验
+                        case 4:
+                            /* 密码：放宽可打印范围 */
                             if (len > 0 && len <= MQTT_PASS_MAX_LEN - 1) {
                                 memcpy(new_pass, value, len);
                                 new_pass[len] = '\0';
@@ -628,7 +609,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                                 updated[4] = true;
                             }
                             break;
-                        case 5: // subscribe_topic
+                        case 5:
                             if (validate_string_field(value, len, 1, MQTT_TOPIC_MAX_LEN - 1)) {
                                 memcpy(new_sub, value, len);
                                 new_sub[len] = '\0';
@@ -636,7 +617,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                                 updated[5] = true;
                             }
                             break;
-                        case 6: // publish_topic
+                        case 6:
                             if (validate_string_field(value, len, 1, MQTT_TOPIC_MAX_LEN - 1)) {
                                 memcpy(new_pub, value, len);
                                 new_pub[len] = '\0';
@@ -645,7 +626,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                             }
                             break;
                         default:
-                            // 未知字段类型，跳过
+                            /* 未知 type，跳过 */
                             break;
                     }
 
@@ -662,7 +643,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                     break;
                 }
 
-                // 更新全局配置：仅更新“提交过的字段”
+                /* 合并到 g_mqtt_config */
                 if (updated[0]) strncpy(g_mqtt_config.server_addr, new_addr, sizeof(g_mqtt_config.server_addr));
                 if (updated[1]) strncpy(g_mqtt_config.server_port, new_port, sizeof(g_mqtt_config.server_port));
                 if (updated[2]) strncpy(g_mqtt_config.client_id, new_cid, sizeof(g_mqtt_config.client_id));
@@ -671,13 +652,13 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                 if (updated[5]) strncpy(g_mqtt_config.subscribe_topic, new_sub, sizeof(g_mqtt_config.subscribe_topic));
                 if (updated[6]) strncpy(g_mqtt_config.publish_topic, new_pub, sizeof(g_mqtt_config.publish_topic));
 
-                // 保存到Flash
+                /* 写 Flash */
                 if (mqtt_config_save()) {
                     co_printf("MQTT config updated & saved\r\n");
                     co_printf("  addr=%s, port=%s\r\n", g_mqtt_config.server_addr, g_mqtt_config.server_port);
                     protocol_send_response(CMD_SET_MQTT_CONFIG, STATUS_SUCCESS, source);
 
-                    // 通知应用层：MQTT配置已更新，需要重连
+                    /* 通知重连 */
                     app_task_send_event(APP_EVT_MQTT_CONFIG_UPDATED, NULL, 0);
                 } else {
                     co_printf("MQTT config save FAILED\r\n");
@@ -695,12 +676,10 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
             }
             break;
 
-        // ---- 时间同步 ----
+        /* 时间同步 */
         case CMD_SYNC_TIME:
             {
-                // 数据格式: data[0..1]=年, data[2]=月, data[3]=日,
-                //           data[4]=时, data[5]=分, data[6]=秒, data[7]=周
-                // payload_len = 年(2B) + 月(1B)+日(1B)+时(1B)+分(1B)+秒(1B)+周(1B)=8B
+                /* 8B：年(LE16)+月日时分秒周 */
                 if (payload_len < 8) {
                     protocol_send_response(CMD_SYNC_TIME, STATUS_ERROR_PARAM, source);
                     break;
@@ -725,7 +704,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
     return true;
 }
 
-// ========== 主动上报函数 ==========
+/* --- 主动上报 --- */
 
 void protocol_send_heartbeat(uint8_t source)
 {
@@ -742,12 +721,11 @@ void protocol_send_device_info(uint8_t source)
 {
     uint8_t data[14] = {0};
 
-    // 设备ID (6字节)
+    /* 6B 设备 ID */
     memcpy(data, ESAirdata.MUConlyID, 6);
-    // 固件版本 (4字节)
-    data[6] = 0x02;  // v2.0.0.0
-    // 硬件版本 (4字节)
-    data[10] = 0x01; // v1.0.0.0
+    /* 4B 软件 / 4B 硬件版本占位 */
+    data[6] = 0x02;
+    data[10] = 0x01;
 
     protocol_build_and_send(CMD_DEVICE_INFO, DATA_MARK_RESPONSE, data, 14, source);
 }
@@ -760,7 +738,7 @@ void protocol_send_status(uint8_t source)
     data[2] = ESAirdata.AIRTemperature;
     data[3] = ESAirdata.AIRWindspeed;
 
-    // 连接状态：任意连接为 1（BLE 或 MQTT）
+    /* 有 BLE 或 MQTT 则置 1 */
     uint8_t connected_any = 0;
     if (gap_get_connect_num() > 0) {
         connected_any = 1;
@@ -786,6 +764,19 @@ void protocol_send_temperature(uint8_t source)
                             (uint8_t *)&temp, 4, source);
 }
 
+void protocol_send_adc_raw(uint8_t source)
+{
+    uint8_t d[4];
+    uint16_t p = ESAirdata.AIRpowerADCvalue;
+    uint16_t n = ESAirdata.AIRntcADCvalue;
+
+    d[0] = (uint8_t)(p & 0xFF);
+    d[1] = (uint8_t)((p >> 8) & 0xFF);
+    d[2] = (uint8_t)(n & 0xFF);
+    d[3] = (uint8_t)((n >> 8) & 0xFF);
+    protocol_build_and_send(CMD_GET_ADC_DATA, DATA_MARK_RESPONSE, d, 4, source);
+}
+
 void protocol_send_ble_name(uint8_t source)
 {
     uint8_t data[BLE_NAME_MAX_LEN + 1];
@@ -798,13 +789,9 @@ void protocol_send_ble_name(uint8_t source)
                             data, name_len + 1, source);
 }
 
-/* ============================================================================
- *                      MQTT配置命令辅助函数
- * ============================================================================ */
+/* MQTT TLV 辅助 */
 
-/**
- * @brief 安全字符串校验（非空、可打印ASCII）
- */
+/* 可打印 ASCII */
 static bool validate_string_field(const char *str, uint8_t len, uint8_t min_len, uint8_t max_len)
 {
     if (str == NULL || len < min_len || len > max_len) {
@@ -818,16 +805,7 @@ static bool validate_string_field(const char *str, uint8_t len, uint8_t min_len,
     return true;
 }
 
-/**
- * @brief 构建 MQTT 配置 TLV 数据
- * @param buf  输出缓冲区
- * @param buf_size 缓冲区大小
- * @return 数据长度
- *
- * TLV格式: [type(1)][len(1)][value(N)]...
- * type: 0=server_addr, 1=server_port, 2=client_id, 3=username,
- *       4=password, 5=subscribe_topic, 6=publish_topic
- */
+/* g_mqtt_config -> TLV */
 static uint8_t build_mqtt_config_tlv(uint8_t *buf, uint8_t buf_size)
 {
     uint16_t pos = 0;

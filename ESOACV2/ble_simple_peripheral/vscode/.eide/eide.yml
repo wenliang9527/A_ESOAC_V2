@@ -17,8 +17,6 @@ virtualFolder:
       folders: []
     - name: profiles
       files:
-        - path: ../components/ble/profiles/ble_simple_profile/simple_gatt_service.c
-        - path: ../components/ble/profiles/ble_simple_profile/simple_gatt_service.h
         - path: ../usercode/ESAIRble_service.c
         - path: ../usercode/ESAIRble_service.h
       folders: []
@@ -98,9 +96,8 @@ targets:
         - ../components/modules/button
         - ../components/ble/include/gap
         - ../components/ble/include/gatt
-        - ../components/ble/profiles/ble_simple_profile
-        - ../usercode
         - ../code
+        - ../usercode
         - ../components/ble/profiles/ble_ota
         - .cmsis/include
         - ../keil/RTE/_ble_simple_peripheral

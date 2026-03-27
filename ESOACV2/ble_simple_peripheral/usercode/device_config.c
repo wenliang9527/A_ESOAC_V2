@@ -1,7 +1,4 @@
-/**
- * @file device_config.c
- * @brief 设备配置持久化存储模块实现
- */
+/* 设备配置：BLE 名等写 W25Q */
 
 #include "device_config.h"
 #include "frspi.h"
@@ -9,20 +6,10 @@
 #include "co_printf.h"
 #include "frATcode.h"
 
-/* ============================================================================
- *                              内部变量
- * ============================================================================ */
-// 设备配置运行时数据（RAM副本）
-// ble_name_len==0 表示未保存自定义名，启动时使用 ESOAC+硬件地址
+/* RAM 副本；ble_name_len==0 表示用默认 ESOAC+地址 */
 static device_config_t g_device_config;
 
-/* ============================================================================
- *                              内部函数
- * ============================================================================ */
-
-/**
- * @brief 将RAM中的配置写入Flash
- */
+/* 整扇区擦除后写入并回读校验 */
 static bool device_config_write_flash(void)
 {
     if (!spi_flash_is_present()) {
@@ -30,11 +17,9 @@ static bool device_config_write_flash(void)
         return false;
     }
 
-    // 先擦除所在扇区
     uint32_t sector_addr = DEVICE_CONFIG_FLASH_ADDR / SPIF_SECTOR_SIZE;
     SpiFlash_Erase_Sector(sector_addr);
 
-    // 写入配置数据
     SpiFlash_Write((uint8_t *)&g_device_config, DEVICE_CONFIG_FLASH_ADDR,
                    sizeof(device_config_t));
 
@@ -51,13 +36,6 @@ static bool device_config_write_flash(void)
     return true;
 }
 
-/* ============================================================================
- *                              公共函数实现
- * ============================================================================ */
-
-/**
- * @brief 从SPI Flash加载设备配置
- */
 void device_config_load(void)
 {
     if (!spi_flash_is_present()) {

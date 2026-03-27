@@ -2,7 +2,6 @@
 ".\objects\proj_main.o"
 ".\objects\ble_simple_peripheral.o"
 ".\objects\user_task.o"
-".\objects\simple_gatt_service.o"
 ".\objects\driver_adc.o"
 ".\objects\driver_codec.o"
 ".\objects\driver_efuse.o"

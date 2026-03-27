@@ -1,4 +1,4 @@
-;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Fri Mar 27 14:26:14 2026
+;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Fri Mar 27 17:50:00 2026
 ;VERSION 0.2
 ;FILE aircondata.o
 IS_temp_year <= USED 0
@@ -65,9 +65,9 @@ attm_svc_set_permission <= USED 0
 attmdb_svc_visibility_set <= USED 0
 ;FILE atts.o
 ;FILE ble_simple_peripheral.o
-__asm___23_ble_simple_peripheral_c_4fde123a____REV16 <= USED 0
-__asm___23_ble_simple_peripheral_c_4fde123a____REVSH <= USED 0
-__asm___23_ble_simple_peripheral_c_4fde123a____RRX <= USED 0
+__asm___23_ble_simple_peripheral_c_f405acfa____REV16 <= USED 0
+__asm___23_ble_simple_peripheral_c_f405acfa____REVSH <= USED 0
+__asm___23_ble_simple_peripheral_c_f405acfa____RRX <= USED 0
 ;FILE core_cm3_isr.o
 __asm___14_core_cm3_isr_c_5a2a0181____REV16 <= USED 0
 __asm___14_core_cm3_isr_c_5a2a0181____REVSH <= USED 0
@@ -83,7 +83,6 @@ mqtt_config_erase <= USED 0
 __asm___12_driver_adc_c_15bb8007____REV16 <= USED 0
 __asm___12_driver_adc_c_15bb8007____REVSH <= USED 0
 __asm___12_driver_adc_c_15bb8007____RRX <= USED 0
-adc_enable <= USED 0
 adc_get_ref_voltage <= USED 0
 ;FILE driver_codec.o
 audio_speaker_codec_init <= USED 0
@@ -167,10 +166,7 @@ pmu_set_led1_value <= USED 0
 pmu_set_led2_as_pwm <= USED 0
 pmu_set_led2_value <= USED 0
 pmu_set_lp_clk_src <= USED 0
-pmu_set_pin_dir <= USED 0
 pmu_set_pin_pull <= USED 0
-pmu_set_pin_to_PMU <= USED 0
-pmu_set_port_mux <= USED 0
 ;FILE driver_pmu_pwm.o
 __asm___16_driver_pmu_pwm_c_dcc31a5d____REV16 <= USED 0
 __asm___16_driver_pmu_pwm_c_dcc31a5d____REVSH <= USED 0
@@ -255,7 +251,6 @@ flash_read_id <= USED 0
 __asm___7_frADC_c_0d7dbe3c____REV16 <= USED 0
 __asm___7_frADC_c_0d7dbe3c____REVSH <= USED 0
 __asm___7_frADC_c_0d7dbe3c____RRX <= USED 0
-fr_ADC_stop <= USED 0
 ;FILE fratcode.o
 ML307A_GetOperatorInfo <= USED 0
 ML307A_Init <= USED 0
@@ -273,14 +268,13 @@ __asm___10_frATcode_c_85507052____REVSH <= USED 0
 __asm___10_frATcode_c_85507052____RRX <= USED 0
 ;FILE frirconversion.o
 IR_decode <= USED 0
-IR_init <= USED 0
 IR_stop_send <= USED 0
+IR_test_demo0 <= USED 0
 IR_test_demo1 <= USED 0
 IR_test_demo2 <= USED 0
 __asm___16_frIRConversion_c_2b9655e1____REV16 <= USED 0
 __asm___16_frIRConversion_c_2b9655e1____REVSH <= USED 0
 __asm___16_frIRConversion_c_2b9655e1____RRX <= USED 0
-process_ir_data <= USED 0
 ;FILE frspi.o
 __asm___7_frspi_c_bd8f4cfa____REV16 <= USED 0
 __asm___7_frspi_c_bd8f4cfa____REVSH <= USED 0
@@ -291,7 +285,6 @@ USART_1_listADD <= USED 0
 __asm___9_frusart_c_ESOACSum____REV16 <= USED 0
 __asm___9_frusart_c_ESOACSum____REVSH <= USED 0
 __asm___9_frusart_c_ESOACSum____RRX <= USED 0
-fruart0_init <= USED 0
 ;FILE gap_api.o
 gap_address_set <= USED 0
 gap_bond_manager_add_info <= USED 0
@@ -389,7 +382,6 @@ gattc_get_op_seq_num <= USED 0
 gattc_trans_timeout_ctrl <= USED 0
 ;FILE gattm.o
 ;FILE irlearntr.o
-ESOAAIR_readkey <= USED 0
 __asm___11_IRLearntr_c_3f1bbab9____REV16 <= USED 0
 __asm___11_IRLearntr_c_3f1bbab9____REVSH <= USED 0
 __asm___11_IRLearntr_c_3f1bbab9____RRX <= USED 0

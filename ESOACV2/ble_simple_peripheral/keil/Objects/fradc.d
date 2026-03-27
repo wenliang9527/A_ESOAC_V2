@@ -12,8 +12,6 @@
 .\objects\fradc.o: ..\components\modules\platform\include\cmsis_armcc.h
 .\objects\fradc.o: ..\components\modules\platform\include\ll.h
 .\objects\fradc.o: ..\components\driver\include\driver_adc.h
-.\objects\fradc.o: ..\components\modules\os\include\os_task.h
-.\objects\fradc.o: ..\components\modules\os\include\os_msg_q.h
 .\objects\fradc.o: ..\components\modules\os\include\os_timer.h
 .\objects\fradc.o: ..\components\modules\common\include\co_printf.h
 .\objects\fradc.o: ..\usercode\aircondata.h
@@ -24,6 +22,8 @@
 .\objects\fradc.o: ..\usercode\frusart.h
 .\objects\fradc.o: ..\components\driver\include\driver_timer.h
 .\objects\fradc.o: ..\components\driver\include\driver_uart.h
+.\objects\fradc.o: ..\components\modules\os\include\os_task.h
+.\objects\fradc.o: ..\components\modules\os\include\os_msg_q.h
 .\objects\fradc.o: ..\usercode\frIRConversion.h
 .\objects\fradc.o: ..\usercode\aircondata.h
 .\objects\fradc.o: ..\usercode\frspi.h

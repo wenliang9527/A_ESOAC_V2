@@ -38,6 +38,6 @@
 .\objects\protocol.o: ..\components\driver\include\driver_adc.h
 .\objects\protocol.o: ..\usercode\ESAIRble_service.h
 .\objects\protocol.o: ..\usercode\device_config.h
-.\objects\protocol.o: ..\usercode\ble_simple_peripheral.h
+.\objects\protocol.o: ..\code\ble_simple_peripheral.h
 .\objects\protocol.o: ..\components\ble\include\gap\gap_api.h
 .\objects\protocol.o: ..\usercode\app_task.h

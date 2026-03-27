@@ -18,4 +18,4 @@
 .\objects\patch.o: ..\components\driver\include\driver_pmu_regs.h
 .\objects\patch.o: ..\components\driver\include\driver_frspim.h
 .\objects\patch.o: ..\components\driver\include\driver_flash.h
-.\objects\patch.o: ..\usercode\flash_usage_config.h
+.\objects\patch.o: ..\code\flash_usage_config.h
