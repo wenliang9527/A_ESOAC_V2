@@ -1,0 +1,237 @@
+version: "4.1"
+name: ble_simple_peripheral
+type: ARM
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: application
+      files:
+        - path: ../code/proj_main.c
+        - path: ../code/ble_simple_peripheral.c
+        - path: ../code/ble_simple_peripheral.h
+        - path: ../code/user_task.c
+      folders: []
+    - name: profiles
+      files:
+        - path: ../components/ble/profiles/ble_simple_profile/simple_gatt_service.c
+        - path: ../components/ble/profiles/ble_simple_profile/simple_gatt_service.h
+        - path: ../usercode/ESAIRble_service.c
+        - path: ../usercode/ESAIRble_service.h
+      folders: []
+    - name: driver
+      files:
+        - path: ../components/driver/driver_adc.c
+        - path: ../components/driver/driver_codec.c
+        - path: ../components/driver/driver_efuse.c
+        - path: ../components/driver/driver_exti.c
+        - path: ../components/driver/driver_i2s.c
+        - path: ../components/driver/driver_iic.c
+        - path: ../components/driver/driver_keyscan.c
+        - path: ../components/driver/driver_pdm.c
+        - path: ../components/driver/driver_pmu.c
+        - path: ../components/driver/driver_pmu_pwm.c
+        - path: ../components/driver/driver_pmu_qdec.c
+        - path: ../components/driver/driver_pwm.c
+        - path: ../components/driver/driver_rtc.c
+        - path: ../components/driver/driver_ssp.c
+        - path: ../components/driver/driver_system.c
+        - path: ../components/driver/driver_timer.c
+        - path: ../components/driver/driver_uart.c
+        - path: ../components/driver/driver_wdt.c
+      folders: []
+    - name: platform
+      files:
+        - path: ../components/modules/platform/source/core_cm3_isr.c
+        - path: ../components/modules/platform/source/app_boot_vectors.s
+      folders: []
+    - name: patch
+      files:
+        - path: ../components/modules/patch/patch.c
+      folders: []
+    - name: lib
+      files:
+        - path: ../components/ble/library/fr8010h_stack.lib
+      folders: []
+    - name: OTA
+      files:
+        - path: ../components/ble/profiles/ble_ota/ota.c
+        - path: ../components/ble/profiles/ble_ota/ota_service.c
+      folders: []
+    - name: IR
+      files:
+        - path: ../usercode/aircondata.c
+        - path: ../usercode/frADC.c
+        - path: ../usercode/frATcode.c
+        - path: ../usercode/frIRConversion.c
+        - path: ../usercode/frspi.c
+        - path: ../usercode/frusart.c
+        - path: ../usercode/LED.c
+        - path: ../usercode/COManalysis.c
+      folders: []
+    - name: ucode
+      files:
+        - path: ../usercode/IRLearntr.c
+      folders: []
+    - name: ::CMSIS
+      files: []
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: f24ea4326018fefcfb72ed93e950442f
+targets:
+  ble_simple_peripheral:
+    cppPreprocessAttrs:
+      defineList: []
+      incList:
+        - ../components/ble/include
+        - ../components/driver/include
+        - ../components/modules/os/include
+        - ../components/modules/sys/include
+        - ../components/modules/platform/include
+        - ../components/modules/common/include
+        - ../components/modules/lowpow/include
+        - ../components/modules/button
+        - ../components/ble/include/gap
+        - ../components/ble/include/gatt
+        - ../components/ble/profiles/ble_simple_profile
+        - ../usercode
+        - ../code
+        - ../components/ble/profiles/ble_ota
+        - .cmsis/include
+        - ../keil/RTE/_ble_simple_peripheral
+      libList: []
+    excludeList: []
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M3
+        floatingPointHardware: none
+        options:
+          version: 4
+          afterBuildTasks:
+            - name: "[Copy linker output for Keil User Commands]"
+              abortAfterFailed: true
+              command: cd .\..\keil && mkdir ${KEIL_OUTPUT_DIR} & copy "${OutDir}\${ProjectName}.axf" "${KEIL_OUTPUT_DIR}\${ProjectName}.axf"
+              disable: false
+            - name: fromelf.exe  --text  -c -o Output/ble_simple_peripheral.txt  Objects/ble_simple_peripheral.axf
+              abortAfterFailed: true
+              command: cd .\..\keil && fromelf.exe  --text  -c -o Output/ble_simple_peripheral.txt  Objects/ble_simple_peripheral.axf
+              disable: false
+            - name: fromelf.exe  --bin -o Output/ble_simple_peripheral.bin  Objects/ble_simple_peripheral.axf
+              abortAfterFailed: true
+              command: cd .\..\keil && fromelf.exe  --bin -o Output/ble_simple_peripheral.bin  Objects/ble_simple_peripheral.axf
+              disable: false
+          asm-compiler:
+            defines: []
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            one-elf-section-per-function: true
+            optimization: level-3
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $disableOutputTask: true
+            $outputTaskExcludes:
+              - .bin
+            misc-controls: --feedback=feedback.txt ../components/ble/library/syscall.txt --entry=app_main --keep=_jump_table_reserved --keep=_jump_table_version --keep=_jump_table_image --keep=_jump_table_middle --keep=_jump_table_last --datacompressor=off
+            output-format: elf
+            ro-base: "0x00000000"
+            rw-base: "0x00000000"
+            xo-base: ""
+        scatterFilePath: ../keil/ble_5_0.sct
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x40000"
+                startAddr: "0x0"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: true
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+    uploader: JLink

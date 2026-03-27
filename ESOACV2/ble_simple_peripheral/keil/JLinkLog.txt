@@ -1,0 +1,79 @@
+T3DD4 000:220.240   SEGGER J-Link V8.38 Log File
+T3DD4 000:220.422   DLL Compiled: May 28 2025 12:37:48
+T3DD4 000:220.427   Logging started @ 2026-02-10 08:37
+T3DD4 000:220.431   Process: D:\MDK5\UV4\UV4.exe
+T3DD4 000:220.443 - 220.435ms 
+T3DD4 000:220.451 JLINK_SetWarnOutHandler(...)
+T3DD4 000:220.456 - 0.006ms 
+T3DD4 000:220.465 JLINK_OpenEx(...)
+T3DD4 000:226.309   Firmware: J-Link V9 compiled May  7 2021 16:26:12
+T3DD4 000:227.609   Firmware: J-Link V9 compiled May  7 2021 16:26:12
+T3DD4 000:227.773   Decompressing FW timestamp took 118 us
+T3DD4 000:235.435   Hardware: V9.60
+T3DD4 000:235.470   S/N: 69606311
+T3DD4 000:235.476   OEM: SEGGER
+T3DD4 000:235.482   Feature(s): GDB, RDI, FlashBP, FlashDL, JFlash
+T3DD4 000:236.494   Bootloader: (FW returned invalid version)
+T3DD4 000:237.642   TELNET listener socket opened on port 19021
+T3DD4 000:237.924   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
+T3DD4 000:238.440   WEBSRV Webserver running on local port 19080
+T3DD4 000:238.626   Looking for J-Link GUI Server exe at: D:\MDK5\ARM\Segger\JLinkGUIServer.exe
+T3DD4 000:238.738   Looking for J-Link GUI Server exe at: C:\Program Files\SEGGER\JLink_V838\JLinkGUIServer.exe
+T3DD4 000:238.773   Forking J-Link GUI Server: C:\Program Files\SEGGER\JLink_V838\JLinkGUIServer.exe
+T3DD4 000:269.187   J-Link GUI Server info: "J-Link GUI server V8.38 "
+T3DD4 000:272.968 - 52.486ms returns "O.K."
+T3DD4 000:273.004 JLINK_GetEmuCaps()
+T3DD4 000:273.013 - 0.005ms returns 0xB9FF7BBF
+T3DD4 000:273.038 JLINK_TIF_GetAvailable(...)
+T3DD4 000:273.304 - 0.266ms 
+T3DD4 000:273.317 JLINK_SetErrorOutHandler(...)
+T3DD4 000:273.322 - 0.004ms 
+T3DD4 000:273.366 JLINK_ExecCommand("ProjectFile = "D:\WORK_VSCODE\EnergySavingOfAirConditioners\textcode\ESOACV2\ble_simple_peripheral\keil\JLinkSettings.ini"", ...). 
+T3DD4 000:292.057   Ref file found at: D:\MDK5\ARM\Segger\JLinkDevices.ref
+T3DD4 000:292.200   REF file references invalid XML file: C:\Program Files\SEGGER\JLink_V838\JLinkDevices.xml
+T3DD4 000:294.307 - 20.944ms returns 0x00
+T3DD4 000:294.336 JLINK_ExecCommand("Device = ARMCM3", ...). 
+T3DD4 000:294.377   Device "CORTEX-M3" selected.
+T3DD4 000:294.879 - 0.536ms returns 0x00
+T3DD4 000:294.890 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
+T3DD4 000:294.905   ERROR: Unknown command
+T3DD4 000:294.911 - 0.016ms returns 0x01
+T3DD4 000:294.917 JLINK_GetHardwareVersion()
+T3DD4 000:294.921 - 0.004ms returns 96000
+T3DD4 000:294.926 JLINK_GetDLLVersion()
+T3DD4 000:294.930 - 0.004ms returns 83800
+T3DD4 000:294.937 JLINK_GetOEMString(...)
+T3DD4 000:294.942 JLINK_GetFirmwareString(...)
+T3DD4 000:294.946 - 0.004ms 
+T3DD4 000:294.953 JLINK_GetDLLVersion()
+T3DD4 000:294.958 - 0.004ms returns 83800
+T3DD4 000:294.962 JLINK_GetCompileDateTime()
+T3DD4 000:294.966 - 0.004ms 
+T3DD4 000:294.973 JLINK_GetFirmwareString(...)
+T3DD4 000:294.977 - 0.004ms 
+T3DD4 000:294.982 JLINK_GetHardwareVersion()
+T3DD4 000:294.986 - 0.004ms returns 96000
+T3DD4 000:294.991 JLINK_GetSN()
+T3DD4 000:294.996 - 0.004ms returns 69606311
+T3DD4 000:295.001 JLINK_GetOEMString(...)
+T3DD4 000:295.014 JLINK_TIF_Select(JLINKARM_TIF_SWD)
+T3DD4 000:296.094 - 1.081ms returns 0x00
+T3DD4 000:296.107 JLINK_HasError()
+T3DD4 000:296.124 JLINK_SetSpeed(2000)
+T3DD4 000:296.314 - 0.191ms 
+T3DD4 000:296.615 JLINK_HasError()
+T3DD4 000:296.626 JLINK_SetResetType(JLINKARM_RESET_TYPE_NORMAL)
+T3DD4 000:296.631 - 0.004ms returns JLINKARM_RESET_TYPE_NORMAL
+T3DD4 000:296.636 JLINK_Reset()
+T3DD4 000:402.623   Failed to attach to CPU. Trying connect under reset.
+T3DD4 000:903.031 - 606.388ms 
+T3DD4 000:903.088 JLINK_GetId()
+T3DD4 001:190.934 - 287.840ms returns 0x00000000
+T3DD4 001:191.066 JLINK_GetId()
+T3DD4 001:482.192 - 291.123ms returns 0x00000000
+T3DD4 001:495.955 JLINK_GetFirmwareString(...)
+T3DD4 001:495.977 - 0.021ms 
+T3DD4 003:007.148 JLINK_Close()
+T3DD4 003:021.719 - 14.569ms
+T3DD4 003:021.758   
+T3DD4 003:021.763   Closed
