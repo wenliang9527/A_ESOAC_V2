@@ -108,9 +108,9 @@ const gatt_attribute_t ESAIR_svc_att_table[ESAIR_ATT_NB] =
 };
 
 /*********************************************************************
- * @fn      sp_gatt_read_cb
+ * @fn      esair_gatt_read_cb
  *
- * @brief   Simple Profile user application handles read request in this callback.
+ * @brief   ESAIR GATT read request handler.
  *			????????????????????????????????
  *
  * @param   p_read  - the pointer to read buffer. NOTE: It's just a pointer from lower layer, please create the buffer in application layer.
@@ -122,7 +122,7 @@ const gatt_attribute_t ESAIR_svc_att_table[ESAIR_ATT_NB] =
  *
  * @return  ??????????.
  */
-static void sp_gatt_read_cb(uint8_t *p_read, uint16_t *len, uint16_t att_idx,uint8_t conn_idx )
+static void esair_gatt_read_cb(uint8_t *p_read, uint16_t *len, uint16_t att_idx,uint8_t conn_idx )
 {
     (void)conn_idx;
 
@@ -141,9 +141,9 @@ static void sp_gatt_read_cb(uint8_t *p_read, uint16_t *len, uint16_t att_idx,uin
     }
 }
 /*********************************************************************
- * @fn      sp_gatt_write_cb
+ * @fn      esair_gatt_write_cb
  *
- * @brief   Simple Profile user application handles write request in this callback.
+ * @brief   ESAIR GATT write request handler.
  *			????????????????????????????????
  *
  * @param   write_buf   - the buffer for write
@@ -156,7 +156,7 @@ static void sp_gatt_read_cb(uint8_t *p_read, uint16_t *len, uint16_t att_idx,uin
  *
  * @return  ??????????.
  */
-static void sp_gatt_write_cb(uint8_t *write_buf, uint16_t len, uint16_t att_idx,uint8_t conn_idx)
+static void esair_gatt_write_cb(uint8_t *write_buf, uint16_t len, uint16_t att_idx,uint8_t conn_idx)
 	{
 		co_printf("ESAIR BLE RX: len=%d\r\n", len);
 
@@ -175,10 +175,9 @@ static void sp_gatt_write_cb(uint8_t *write_buf, uint16_t len, uint16_t att_idx,
 		app_task_send_event(APP_EVT_BLE_DATA_RECEIVED, write_buf, len);
 	}
 /*********************************************************************
- * @fn      sp_gatt_msg_handler
+ * @fn      ESAIR_gatt_msg_handler
  *
- * @brief   Simple Profile callback funtion for GATT messages. GATT read/write
- *			operations are handeled here.
+ * @brief   ESAIR GATT message callback; read/write handled here.
  *
  * @param   p_msg       - GATT messages from GATT layer.
  *
@@ -189,11 +188,11 @@ static uint16_t ESAIR_gatt_msg_handler(gatt_msg_t *p_msg)
     switch(p_msg->msg_evt)
     {
         case GATTC_MSG_READ_REQ:
-            sp_gatt_read_cb((uint8_t *)(p_msg->param.msg.p_msg_data), &(p_msg->param.msg.msg_len), p_msg->att_idx,p_msg->conn_idx );
+            esair_gatt_read_cb((uint8_t *)(p_msg->param.msg.p_msg_data), &(p_msg->param.msg.msg_len), p_msg->att_idx,p_msg->conn_idx );
             return p_msg->param.msg.msg_len;
         
         case GATTC_MSG_WRITE_REQ:
-            sp_gatt_write_cb((uint8_t*)(p_msg->param.msg.p_msg_data), (p_msg->param.msg.msg_len), p_msg->att_idx,p_msg->conn_idx);
+            esair_gatt_write_cb((uint8_t*)(p_msg->param.msg.p_msg_data), (p_msg->param.msg.msg_len), p_msg->att_idx,p_msg->conn_idx);
             return 0;
             
         default:
@@ -206,12 +205,11 @@ static uint16_t ESAIR_gatt_msg_handler(gatt_msg_t *p_msg)
 /*********************************************************************
  * @fn      ESAIR_gatt_report_notify
  *
- * @brief   Send ota protocol response data.
+ * @brief   Send application data to the central via ESAIR TX notification.
  *
- *
- * @param   rpt_info_id - report idx of the hid_rpt_info array.
- *          len         - length of the HID information data.
- *          p_data      - data of the HID information to be sent.
+ * @param   conidx  Connection index.
+ * @param   p_data  Payload.
+ * @param   len     Payload length.
  *
  * @return  none.
  */
@@ -231,22 +229,16 @@ void ESAIR_gatt_report_notify(uint8_t conidx, uint8_t *p_data, uint16_t len)
 }
 
 /*********************************************************************
- * @fn      
+ * @fn      ESAIR_gatt_add_service
  *
- * @brief   Simple Profile add GATT service function.
- *          ????GATT service??ATT????????????
- *
- * @param   None.
- *
- *
- * @return  None.
+ * @brief   Register ESAIR GATT service and attribute table.
  */
 void ESAIR_gatt_add_service(void)
 {
-    gatt_service_t ota_profie_svc;
-    ota_profie_svc.p_att_tb = ESAIR_svc_att_table;
-    ota_profie_svc.att_nb = ESAIR_ATT_NB;
-    ota_profie_svc.gatt_msg_handler = ESAIR_gatt_msg_handler;
+    gatt_service_t esair_profile_svc;
+    esair_profile_svc.p_att_tb = ESAIR_svc_att_table;
+    esair_profile_svc.att_nb = ESAIR_ATT_NB;
+    esair_profile_svc.gatt_msg_handler = ESAIR_gatt_msg_handler;
 
-    ESAIR_svc_id = gatt_add_service(&ota_profie_svc);
+    ESAIR_svc_id = gatt_add_service(&esair_profile_svc);
 }

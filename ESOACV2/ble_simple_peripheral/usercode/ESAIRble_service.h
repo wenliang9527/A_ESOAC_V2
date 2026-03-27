@@ -60,29 +60,21 @@ enum
 /*
  * PUBLIC FUNCTIONS (??????)
  */
- /*********************************************************************
- * @fn      ota_gatt_add_service
+/*********************************************************************
+ * @fn      ESAIR_gatt_add_service
  *
- * @brief   Simple Profile add GATT service function.
- *          ????GATT service??ATT??????????µµ
- *
- * @param   None.
- *
- *
- * @return  None.
+ * @brief   Register the ESAIR custom GATT service with the stack.
  */
 void ESAIR_gatt_add_service(void);
+
 /*********************************************************************
- * @fn      ota_gatt_report_notify
+ * @fn      ESAIR_gatt_report_notify
  *
- * @brief   Send ota protocol response data.
+ * @brief   Notify the connected central on the ESAIR TX characteristic.
  *
- *
- * @param   rpt_info_id - report idx of the hid_rpt_info array.
- *          len         - length of the HID information data.
- *          p_data      - data of the HID information to be sent.
- *
- * @return  none.
+ * @param   conidx  Connection index.
+ * @param   p_data  Payload buffer.
+ * @param   len     Payload length in bytes.
  */
 void ESAIR_gatt_report_notify(uint8_t conidx, uint8_t *p_data, uint16_t len);
 

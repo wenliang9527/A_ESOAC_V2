@@ -70,7 +70,13 @@ static void sensor_read_timer_func(void *arg)
 
     co_printf("Power: %.2fW, Temp: %.2fC\r\n", power_value, temp_value);
 
-    // 如果MQTT已连接，发送数据到云平台
+    /* BLE：有链路时再组帧，通知仍受 ESAIR CCC 约束 */
+    if (gap_get_connect_num() > 0) {
+        protocol_send_power(0);
+        protocol_send_temperature(0);
+    }
+
+    /* MQTT：已连接时上云（与 BLE 独立） */
     if (R_atcommand.MLinitflag == ML307AMQTT_OK) {
         mqtt_handler_send_power();
         mqtt_handler_send_temperature();

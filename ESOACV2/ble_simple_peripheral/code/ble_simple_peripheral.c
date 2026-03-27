@@ -16,7 +16,6 @@
 #include "os_timer.h"
 #include "gap_api.h"
 #include "gatt_api.h"
-#include "simple_gatt_service.h"
 #include "ble_simple_peripheral.h"
 
 #include "sys_utils.h"
@@ -317,8 +316,7 @@ void simple_peripheral_init(void)
     co_printf("Local BDADDR: 0x%2X%2X%2X%2X%2X%2X\r\n", addr.addr[0], addr.addr[1], addr.addr[2], addr.addr[3], addr.addr[4], addr.addr[5]);
     
     
-    // Adding services to database
-    sp_gatt_add_service();  		
+    /* OTA and ESAIR GATT services are registered in user_entry_after_ble_init (proj_main.c). */
 }
 
 /*********************************************************************

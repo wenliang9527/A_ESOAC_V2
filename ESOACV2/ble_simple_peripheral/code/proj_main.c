@@ -24,8 +24,6 @@
 #include "flash_usage_config.h"
 
 #include "ble_simple_peripheral.h"
-#include "simple_gatt_service.h"
-
 #include "frIRConversion.h"
 #include "aircondata.h"
 #include "LED.h"

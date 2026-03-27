@@ -1,4 +1,4 @@
-;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Fri Mar 27 13:09:04 2026
+;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Fri Mar 27 14:26:14 2026
 ;VERSION 0.2
 ;FILE aircondata.o
 IS_temp_year <= USED 0
@@ -287,6 +287,7 @@ __asm___7_frspi_c_bd8f4cfa____REVSH <= USED 0
 __asm___7_frspi_c_bd8f4cfa____RRX <= USED 0
 ;FILE frusart.o
 ESOACSum <= USED 0
+USART_1_listADD <= USED 0
 __asm___9_frusart_c_ESOACSum____REV16 <= USED 0
 __asm___9_frusart_c_ESOACSum____REVSH <= USED 0
 __asm___9_frusart_c_ESOACSum____RRX <= USED 0
@@ -949,10 +950,6 @@ __asm___10_protocol_c_c37a1b03____REV16 <= USED 0
 __asm___10_protocol_c_c37a1b03____REVSH <= USED 0
 __asm___10_protocol_c_c37a1b03____RRX <= USED 0
 ;FILE rwble_hl.o
-;FILE simple_gatt_service.o
-__asm___21_simple_gatt_service_c_3e9a5717____REV16 <= USED 0
-__asm___21_simple_gatt_service_c_3e9a5717____REVSH <= USED 0
-__asm___21_simple_gatt_service_c_3e9a5717____RRX <= USED 0
 ;FILE smpc.o
 ;FILE smpc_api.o
 ;FILE smpc_crypto.o

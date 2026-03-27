@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\components\ble\include;..\components\driver\include;..\components\modules\os\include;..\components\modules\sys\include;..\components\modules\platform\include;..\components\modules\common\include;..\components\modules\lowpow\include;..\components\modules\button;..\components\ble\include\gap;..\components\ble\include\gatt;..\components\ble\profiles\ble_simple_profile;..\usercode;..\code;..\components\ble\profiles\ble_ota</IncludePath>
+              <IncludePath>..\components\ble\include;..\components\driver\include;..\components\modules\os\include;..\components\modules\sys\include;..\components\modules\platform\include;..\components\modules\common\include;..\components\modules\lowpow\include;..\components\modules\button;..\components\ble\include\gap;..\components\ble\include\gatt;..\usercode;..\code;..\components\ble\profiles\ble_ota</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -403,16 +403,6 @@
         <Group>
           <GroupName>profiles</GroupName>
           <Files>
-            <File>
-              <FileName>simple_gatt_service.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\components\ble\profiles\ble_simple_profile\simple_gatt_service.c</FilePath>
-            </File>
-            <File>
-              <FileName>simple_gatt_service.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\components\ble\profiles\ble_simple_profile\simple_gatt_service.h</FilePath>
-            </File>
             <File>
               <FileName>ESAIRble_service.c</FileName>
               <FileType>1</FileType>
