@@ -18,6 +18,7 @@
 #include "jump_table.h"
 #include "driver_efuse.h"
 #include "frspi.h"
+#include "aircondata_persist.h"
 
 /* Protocol V2.2: Device short address storage */
 static uint16_t g_dev_addr = 0;
@@ -407,6 +408,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                 }
 
                 ESAirdata.AIRStatus = desired;
+                ESAirdata_TriggerSave();
                 protocol_send_response(CMD_SET_POWER, STATUS_SUCCESS, source);
             } else {
                 protocol_send_response(CMD_SET_POWER, STATUS_ERROR_PARAM, source);
@@ -438,6 +440,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                 }
 
                 ESAirdata.AIRMODE = desired;
+                ESAirdata_TriggerSave();
                 protocol_send_response(CMD_SET_MODE, STATUS_SUCCESS, source);
             } else {
                 protocol_send_response(CMD_SET_MODE, STATUS_ERROR_PARAM, source);
@@ -476,6 +479,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                             }
                         }
                     }
+                    ESAirdata_TriggerSave();
                     protocol_send_response(CMD_SET_TEMP, STATUS_SUCCESS, source);
                 } else {
                     protocol_send_response(CMD_SET_TEMP, STATUS_ERROR_PARAM, source);
@@ -507,6 +511,7 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                     }
                     ESAirdata.AIRWindspeed = target_wind;
                 }
+                ESAirdata_TriggerSave();
                 protocol_send_response(CMD_SET_WIND, STATUS_SUCCESS, source);
             } else {
                 protocol_send_response(CMD_SET_WIND, STATUS_ERROR_PARAM, source);
@@ -600,6 +605,14 @@ bool protocol_process_frame(protocol_frame_t *frame, uint8_t source)
                     payload[pos++] = (uint8_t)((v >> 16) & 0xFF);
                     payload[pos++] = (uint8_t)((v >> 24) & 0xFF);
                 }
+                
+                /* 添加协议识别信息 */
+                payload[pos++] = learn_copy.protocol_type;
+                payload[pos++] = learn_copy.key_function;
+                payload[pos++] = learn_copy.temp_ctrl_type;
+                payload[pos++] = learn_copy.temp_step;
+                payload[pos++] = learn_copy.paired_key_index;
+                payload[pos++] = learn_copy.cycle_count;
 
                 protocol_build_and_send(CMD_IR_READ_DATA, DATA_MARK_RESPONSE, payload, (uint8_t)pos, source);
             } else {
@@ -1090,6 +1103,9 @@ static bool air_ir_send_key_and_wait(uint8_t keynumber, uint32_t timeout_ms)
         co_delay_100us(50);
         elapsed_us += step_us;
     }
+
+    /* 添加500ms间隔，确保空调处理完成 */
+    co_delay_100us(5000);
 
     return (IR_PWM_TIM.IR_Busy == 0);
 }

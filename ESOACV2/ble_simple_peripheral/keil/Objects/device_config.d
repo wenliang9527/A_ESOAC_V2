@@ -37,3 +37,4 @@
 .\objects\device_config.o: ..\usercode\frIRConversion.h
 .\objects\device_config.o: ..\usercode\aircondata.h
 .\objects\device_config.o: ..\usercode\protocol.h
+.\objects\device_config.o: ..\usercode\urc_parser.h

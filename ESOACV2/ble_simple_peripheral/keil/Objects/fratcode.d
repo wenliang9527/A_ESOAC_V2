@@ -36,5 +36,6 @@
 .\objects\fratcode.o: ..\usercode\frspi.h
 .\objects\fratcode.o: ..\components\driver\include\driver_ssp.h
 .\objects\fratcode.o: ..\usercode\protocol.h
+.\objects\fratcode.o: ..\usercode\urc_parser.h
 .\objects\fratcode.o: ..\usercode\app_task.h
 .\objects\fratcode.o: ..\usercode\mqtt_handler.h

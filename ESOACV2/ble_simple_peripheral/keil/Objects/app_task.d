@@ -39,5 +39,6 @@
 .\objects\app_task.o: D:\MDK5\ARM\ARMCC\Bin\..\include\stdlib.h
 .\objects\app_task.o: ..\components\driver\include\driver_pmu_regs.h
 .\objects\app_task.o: ..\components\driver\include\driver_frspim.h
+.\objects\app_task.o: ..\usercode\urc_parser.h
 .\objects\app_task.o: ..\code\ble_simple_peripheral.h
 .\objects\app_task.o: ..\components\ble\include\gap\gap_api.h

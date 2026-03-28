@@ -36,5 +36,6 @@
 .\objects\frusart.o: ..\usercode\frspi.h
 .\objects\frusart.o: ..\components\driver\include\driver_ssp.h
 .\objects\frusart.o: ..\usercode\protocol.h
+.\objects\frusart.o: ..\usercode\urc_parser.h
 .\objects\frusart.o: ..\usercode\mqtt_handler.h
 .\objects\frusart.o: ..\usercode\app_task.h

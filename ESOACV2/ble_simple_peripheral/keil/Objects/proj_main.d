@@ -42,6 +42,7 @@
 .\objects\proj_main.o: ..\usercode\frIRConversion.h
 .\objects\proj_main.o: ..\usercode\frspi.h
 .\objects\proj_main.o: ..\components\driver\include\driver_ssp.h
+.\objects\proj_main.o: ..\usercode\aircondata_persist.h
 .\objects\proj_main.o: ..\usercode\LED.h
 .\objects\proj_main.o: ..\usercode\frADC.h
 .\objects\proj_main.o: ..\components\driver\include\driver_adc.h
@@ -50,4 +51,5 @@
 .\objects\proj_main.o: ..\usercode\ESAIRble_service.h
 .\objects\proj_main.o: ..\usercode\frATcode.h
 .\objects\proj_main.o: ..\usercode\protocol.h
+.\objects\proj_main.o: ..\usercode\urc_parser.h
 .\objects\proj_main.o: ..\usercode\device_config.h

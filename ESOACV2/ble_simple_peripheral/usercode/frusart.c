@@ -89,85 +89,44 @@ void uart0_send_timer_func(void *arg)
 
 void uart0_recv_timer_func(void *arg)
 {
+    (void)arg;
     uint16_t rx_len = ATUSART_0_RXbuf.Point;
-    ATUSART_0_RXbuf.FramLen = rx_len;
-
-    /* 先识别 MQTT URC，避免当普通 AT 应答处理 */
-    if (rx_len > 0) {
-        uint8_t tmp_null = ATUSART_0_RXbuf.FrameBuf[rx_len < MAXFRAMELEN ? rx_len : MAXFRAMELEN - 1];
-        ATUSART_0_RXbuf.FrameBuf[rx_len < MAXFRAMELEN ? rx_len : MAXFRAMELEN - 1] = '\0';
-
-        if (strstr((char *)ATUSART_0_RXbuf.FrameBuf, "+MQTTrecv:") != NULL) {
-            ATUSART_0_RXbuf.FrameBuf[rx_len < MAXFRAMELEN ? rx_len : MAXFRAMELEN - 1] = tmp_null;
-
-            char *recv_ptr = (char *)ATUSART_0_RXbuf.FrameBuf;
-            char *urc_start = strstr(recv_ptr, "+MQTTrecv:");
-            if (urc_start != NULL) {
-                char *comma1 = strchr(urc_start + 10, ',');
-                char *comma2 = NULL;
-                uint16_t data_len = 0;
-
-                if (comma1 != NULL) {
-                    char *topic_start = comma1 + 1;
-                    if (*topic_start == '"') {
-                        topic_start++;
-                        comma2 = strchr(topic_start, '"');
-                        if (comma2 != NULL) {
-                            comma2++;
-                            if (*comma2 == ',') {
-                                comma2++;
-                            }
-                        }
-                    } else {
-                        comma2 = strchr(topic_start, ',');
-                        if (comma2 != NULL) {
-                            comma2++;
-                        }
-                    }
-                }
-
-                if (comma2 != NULL) {
-                    data_len = (uint16_t)atoi(comma2);
-                }
-
-                char *data_start = strstr(recv_ptr, "\r\n");
-                if (data_start != NULL) {
-                    data_start += 2;
-                    uint16_t actual_data_offset = (uint16_t)(data_start - recv_ptr);
-                    uint16_t actual_data_len = rx_len - actual_data_offset;
-
-                    co_printf("URC MQTT recv, expect_len:%d, actual:%d\r\n", data_len, actual_data_len);
-
-                    if (data_len > 0 && actual_data_len > 0) {
-                        mqtt_handler_message_arrived(g_mqtt_config.subscribe_topic,
-                                                     &ATUSART_0_RXbuf.FrameBuf[actual_data_offset],
-                                                     actual_data_len > data_len ? data_len : actual_data_len);
-                    }
-                } else {
-                    co_printf("URC MQTT recv header only\r\n");
-                }
-            }
-
-            ATUSART_0_RXbuf.Point = 0;
-            return;
-        }
-
-        if (strstr((char *)ATUSART_0_RXbuf.FrameBuf, "+MQTTclosed:") != NULL) {
-            ATUSART_0_RXbuf.FrameBuf[rx_len < MAXFRAMELEN ? rx_len : MAXFRAMELEN - 1] = tmp_null;
-            co_printf("URC MQTT closed\r\n");
-            if (R_atcommand.MLinitflag == ML307AMQTT_OK) {
-                R_atcommand.MLinitflag = ML307A_Idle;
-                app_task_send_event(APP_EVT_MQTT_DISCONNECTED, NULL, 0);
-            }
-            ATUSART_0_RXbuf.Point = 0;
-            return;
-        }
-
-        ATUSART_0_RXbuf.FrameBuf[rx_len < MAXFRAMELEN ? rx_len : MAXFRAMELEN - 1] = tmp_null;
+    
+    if (rx_len == 0) {
+        return;
     }
-
-    R_atcommand.RECompleted = true;
-    memcpy(R_atcommand.REcmd_string, ATUSART_0_RXbuf.FrameBuf, ATUSART_0_RXbuf.FramLen);
+    
+    ATUSART_0_RXbuf.FramLen = rx_len;
+    
+    /* ============================================================================
+     * 新的URC处理机制 - 使用URC解析器
+     * 1. 尝试解析为URC
+     * 2. 如果是URC，加入队列由定时器异步处理
+     * 3. 如果不是URC，作为AT响应处理
+     * ============================================================================ */
+    
+    urc_entry_t entry;
+    if (urc_parse(ATUSART_0_RXbuf.FrameBuf, rx_len, &entry)) {
+        // 是URC，加入队列
+        if (urc_queue_push(&R_atcommand.urc_queue, &entry)) {
+            co_printf("URC queued: type=%d, queue_count=%d\r\n", 
+                      entry.type, urc_queue_count(&R_atcommand.urc_queue));
+        } else {
+            co_printf("URC queue full, dropped type=%d\r\n", entry.type);
+        }
+    } else {
+        // 不是URC，作为AT响应处理
+        R_atcommand.RECompleted = true;
+        if (rx_len < sizeof(R_atcommand.REcmd_string)) {
+            memcpy(R_atcommand.REcmd_string, ATUSART_0_RXbuf.FrameBuf, rx_len);
+            R_atcommand.REcmd_string[rx_len] = '\0';
+        } else {
+            memcpy(R_atcommand.REcmd_string, ATUSART_0_RXbuf.FrameBuf, 
+                   sizeof(R_atcommand.REcmd_string) - 1);
+            R_atcommand.REcmd_string[sizeof(R_atcommand.REcmd_string) - 1] = '\0';
+        }
+    }
+    
     ATUSART_0_RXbuf.Point = 0;
 }
 #endif

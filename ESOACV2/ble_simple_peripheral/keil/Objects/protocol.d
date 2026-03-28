@@ -36,6 +36,7 @@
 .\objects\protocol.o: ..\components\driver\include\driver_frspim.h
 .\objects\protocol.o: ..\usercode\frADC.h
 .\objects\protocol.o: ..\components\driver\include\driver_adc.h
+.\objects\protocol.o: ..\usercode\urc_parser.h
 .\objects\protocol.o: ..\usercode\ESAIRble_service.h
 .\objects\protocol.o: ..\usercode\device_config.h
 .\objects\protocol.o: ..\code\ble_simple_peripheral.h
@@ -43,3 +44,4 @@
 .\objects\protocol.o: ..\usercode\app_task.h
 .\objects\protocol.o: ..\components\modules\platform\include\jump_table.h
 .\objects\protocol.o: ..\components\driver\include\driver_efuse.h
+.\objects\protocol.o: ..\usercode\aircondata_persist.h

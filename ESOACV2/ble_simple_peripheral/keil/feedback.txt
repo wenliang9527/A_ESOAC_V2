@@ -1,4 +1,4 @@
-;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Sat Mar 28 15:32:19 2026
+;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Sat Mar 28 18:05:47 2026
 ;VERSION 0.2
 ;FILE aircondata.o
 IS_temp_year <= USED 0
@@ -6,6 +6,11 @@ Timestebreak <= USED 0
 __asm___12_aircondata_c_8bdec53d____REV16 <= USED 0
 __asm___12_aircondata_c_8bdec53d____REVSH <= USED 0
 __asm___12_aircondata_c_8bdec53d____RRX <= USED 0
+;FILE aircondata_persist.o
+ESAirdata_CancelSave <= USED 0
+__asm___20_aircondata_persist_c_da7c93a2____REV16 <= USED 0
+__asm___20_aircondata_persist_c_da7c93a2____REVSH <= USED 0
+__asm___20_aircondata_persist_c_da7c93a2____RRX <= USED 0
 ;FILE app.o
 __asm___5_app_c_836484a2____REV16 <= USED 0
 __asm___5_app_c_836484a2____REVSH <= USED 0
@@ -256,6 +261,7 @@ ML307A_GetOperatorInfo <= USED 0
 ML307A_Init <= USED 0
 ML307A_MQTTReconnect <= USED 0
 ML307A_ProcessURC <= USED 0
+ML307A_URC_StopTimer <= USED 0
 ML307Arest <= USED 0
 ML307Wakeup <= USED 0
 ML307_PWR <= USED 0
@@ -381,6 +387,10 @@ gattc_get_op_seq_num <= USED 0
 ;FILE gattc_task.o
 gattc_trans_timeout_ctrl <= USED 0
 ;FILE gattm.o
+;FILE ir_protocol_detect.o
+__asm___20_ir_protocol_detect_c_00f25673____REV16 <= USED 0
+__asm___20_ir_protocol_detect_c_00f25673____REVSH <= USED 0
+__asm___20_ir_protocol_detect_c_00f25673____RRX <= USED 0
 ;FILE irlearntr.o
 __asm___11_IRLearntr_c_3f1bbab9____REV16 <= USED 0
 __asm___11_IRLearntr_c_3f1bbab9____REVSH <= USED 0
@@ -977,6 +987,11 @@ system_set_rf_power <= USED 0
 system_set_tx_power <= USED 0
 system_sleep_enable <= USED 0
 val_to_str <= USED 0
+;FILE urc_parser.o
+__asm___12_urc_parser_c_51fb3ece____REV16 <= USED 0
+__asm___12_urc_parser_c_51fb3ece____REVSH <= USED 0
+__asm___12_urc_parser_c_51fb3ece____RRX <= USED 0
+urc_queue_clear <= USED 0
 ;FILE user_bond_manage.o
 ble_bond_addr_check_result <= USED 0
 ble_bond_clr_all_info <= USED 0

@@ -569,6 +569,11 @@
               <FilePath>..\usercode\aircondata.c</FilePath>
             </File>
             <File>
+              <FileName>aircondata_persist.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\usercode\aircondata_persist.c</FilePath>
+            </File>
+            <File>
               <FileName>frADC.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\usercode\frADC.c</FilePath>
@@ -607,6 +612,16 @@
               <FileName>IRLearntr.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\usercode\IRLearntr.c</FilePath>
+            </File>
+            <File>
+              <FileName>ir_protocol_detect.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\usercode\ir_protocol_detect.c</FilePath>
+            </File>
+            <File>
+              <FileName>urc_parser.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\usercode\urc_parser.c</FilePath>
             </File>
           </Files>
         </Group>

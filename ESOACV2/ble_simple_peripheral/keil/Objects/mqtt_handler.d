@@ -37,3 +37,4 @@
 .\objects\mqtt_handler.o: ..\components\driver\include\driver_frspim.h
 .\objects\mqtt_handler.o: ..\usercode\frADC.h
 .\objects\mqtt_handler.o: ..\components\driver\include\driver_adc.h
+.\objects\mqtt_handler.o: ..\usercode\urc_parser.h

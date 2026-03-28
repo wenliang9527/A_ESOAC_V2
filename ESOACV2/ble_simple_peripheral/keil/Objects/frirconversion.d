@@ -36,3 +36,5 @@
 .\objects\frirconversion.o: ..\components\driver\include\driver_exti.h
 .\objects\frirconversion.o: D:\MDK5\ARM\ARMCC\Bin\..\include\math.h
 .\objects\frirconversion.o: ..\components\modules\os\include\os_mem.h
+.\objects\frirconversion.o: ..\usercode\aircondata_persist.h
+.\objects\frirconversion.o: ..\usercode\ir_protocol_detect.h

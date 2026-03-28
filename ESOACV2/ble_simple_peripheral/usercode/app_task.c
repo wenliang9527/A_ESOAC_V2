@@ -162,7 +162,7 @@ static int app_task_func(os_event_t *param)
                     mqtt_handler_connection_callback(false);
                 }
 
-                memset(&R_atcommand.mqtt_recv, 0, sizeof(R_atcommand.mqtt_recv));
+                urc_queue_init(&R_atcommand.urc_queue);
                     R_atcommand.ML307Con = DIS_CONNECTING;
                 R_atcommand.MLinitflag = ML307A_Idle;
                 R_atcommand.RECompleted = false;
@@ -209,6 +209,10 @@ void app_task_init_mqtt_timers(void)
     os_timer_start(&heartbeat_timer, 60000, 1);
     os_timer_start(&status_report_timer, 30000, 1);
     os_timer_start(&sensor_read_timer, ADC_SAMPLE_PERIOD_MS, 1);
+    
+    /* 初始化并启动URC处理系统 */
+    ML307A_URC_Init();
+    ML307A_URC_StartTimer();
 }
 
 /* early + mqtt_timers */
