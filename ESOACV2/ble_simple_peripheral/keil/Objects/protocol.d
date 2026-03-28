@@ -41,3 +41,5 @@
 .\objects\protocol.o: ..\code\ble_simple_peripheral.h
 .\objects\protocol.o: ..\components\ble\include\gap\gap_api.h
 .\objects\protocol.o: ..\usercode\app_task.h
+.\objects\protocol.o: ..\components\modules\platform\include\jump_table.h
+.\objects\protocol.o: ..\components\driver\include\driver_efuse.h

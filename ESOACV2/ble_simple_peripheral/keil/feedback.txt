@@ -1,4 +1,4 @@
-;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Fri Mar 27 17:50:00 2026
+;#<FEEDBACK># ARM Linker, 5060750: Last Updated: Sat Mar 28 15:32:19 2026
 ;VERSION 0.2
 ;FILE aircondata.o
 IS_temp_year <= USED 0
@@ -866,7 +866,9 @@ __asm___14_mqtt_handler_c_bc55e897____REVSH <= USED 0
 __asm___14_mqtt_handler_c_bc55e897____RRX <= USED 0
 mqtt_handler_publish <= USED 0
 mqtt_handler_register_callback <= USED 0
+mqtt_handler_send_power <= USED 0
 mqtt_handler_send_status <= USED 0
+mqtt_handler_send_temperature <= USED 0
 mqtt_handler_subscribe <= USED 0
 mqtt_handler_unsubscribe <= USED 0
 ;FILE os_msg_q.o
@@ -938,9 +940,10 @@ __asm___11_proj_main_c_571a19f4____REV16 <= USED 0
 __asm___11_proj_main_c_571a19f4____REVSH <= USED 0
 __asm___11_proj_main_c_571a19f4____RRX <= USED 0
 ;FILE protocol.o
-__asm___10_protocol_c_c37a1b03____REV16 <= USED 0
-__asm___10_protocol_c_c37a1b03____REVSH <= USED 0
-__asm___10_protocol_c_c37a1b03____RRX <= USED 0
+__asm___10_protocol_c_549e34cf____REV16 <= USED 0
+__asm___10_protocol_c_549e34cf____REVSH <= USED 0
+__asm___10_protocol_c_549e34cf____RRX <= USED 0
+protocol_is_broadcast_addr <= USED 0
 ;FILE rwble_hl.o
 ;FILE smpc.o
 ;FILE smpc_api.o
